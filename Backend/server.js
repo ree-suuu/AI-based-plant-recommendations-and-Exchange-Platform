@@ -984,7 +984,7 @@ const plantDetailsMap = require('./plantDetails');
            const sessionId = 'PAY-' + Date.now() + '-' + Math.round(Math.random() * 1000);
            
            await db.execute(
-             'INSERT INTO payment_sessions (id, user_id, cart_items, total_amount, status) VALUES (?, ?, ?, ?, "pending")',
+             "INSERT INTO payment_sessions (id, user_id, cart_items, total_amount, status) VALUES (?, ?, ?, ?, 'pending')",
              [sessionId, userId || 1, JSON.stringify(cartItems || []), amount || 0]
            );
 
@@ -1124,7 +1124,7 @@ const plantDetailsMap = require('./plantDetails');
 
           // Check if already requested
           const [existing] = await db.execute(
-            'SELECT id FROM trade_requests WHERE sender_id = ? AND plant_id = ? AND status = "pending"',
+            "SELECT id FROM trade_requests WHERE sender_id = ? AND plant_id = ? AND status = 'pending'",
             [sId, pId]
           );
           if (existing.length > 0) {
@@ -1180,11 +1180,11 @@ const plantDetailsMap = require('./plantDetails');
           const { userId } = req.params;
           if (!userId) return res.json({ count: 0 });
           const [incoming] = await db.execute(
-            'SELECT COUNT(*) as count FROM trade_requests WHERE receiver_id = ? AND receiver_seen = 0 AND status = "pending"',
+            "SELECT COUNT(*) as count FROM trade_requests WHERE receiver_id = ? AND receiver_seen = 0 AND status = 'pending'",
             [String(userId)]
           );
           const [outgoing] = await db.execute(
-            'SELECT COUNT(*) as count FROM trade_requests WHERE sender_id = ? AND sender_seen = 0 AND status IN ("accepted", "rejected")',
+            "SELECT COUNT(*) as count FROM trade_requests WHERE sender_id = ? AND sender_seen = 0 AND status IN ('accepted', 'rejected')",
             [String(userId)]
           );
           const total = (incoming[0]?.count || 0) + (outgoing[0]?.count || 0);
@@ -1201,7 +1201,7 @@ const plantDetailsMap = require('./plantDetails');
           const { userId } = req.params;
           // When looking at community/requests, mark all relevant as seen
           await db.execute('UPDATE trade_requests SET receiver_seen = 1 WHERE receiver_id = ?', [userId]);
-          await db.execute('UPDATE trade_requests SET sender_seen = 1 WHERE sender_id = ? AND status IN ("accepted", "rejected")', [userId]);
+          await db.execute("UPDATE trade_requests SET sender_seen = 1 WHERE sender_id = ? AND status IN ('accepted', 'rejected')", [userId]);
           res.json({ success: true });
         } catch (error) {
           res.status(500).json({ error: 'Failed to clear notifications' });
@@ -1230,7 +1230,7 @@ const plantDetailsMap = require('./plantDetails');
             
             // Reject all other pending requests for this plant
             await db.execute(
-              'UPDATE trade_requests SET status = "rejected" WHERE plant_id = ? AND status = "pending" AND id != ?',
+              "UPDATE trade_requests SET status = 'rejected' WHERE plant_id = ? AND status = 'pending' AND id != ?",
               [request.plant_id, requestId]
             );
           }
@@ -1353,7 +1353,7 @@ const plantDetailsMap = require('./plantDetails');
           const [nurseryCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
           const [plantCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
           const [orderCount] = await db.execute('SELECT COUNT(*) as count FROM trade_requests WHERE request_type = "buy"');
-          const [revenue] = await db.execute('SELECT SUM(total_amount) as total FROM payment_sessions WHERE status = "completed"');
+           const [revenue] = await db.execute("SELECT SUM(total_amount) as total FROM payment_sessions WHERE status = 'completed'");
           
           res.json({
             totalUsers: userCount[0].count,
