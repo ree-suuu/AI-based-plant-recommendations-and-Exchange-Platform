@@ -309,8 +309,55 @@ const plantDetailsMap = require('./plantDetails');
 
      initDB();
 
+     function isTableMissingError(error) {
+       return error && (error.code === 'ER_NO_SUCH_TABLE' || error.errno === 1146);
+     }
+
+     function isPermissionError(error) {
+       if (!error) return false;
+       const permissionCodes = new Set([
+         'ER_DBACCESS_DENIED_ERROR',
+         'ER_ACCESS_DENIED_ERROR',
+         'ER_TABLEACCESS_DENIED_ERROR',
+         'ER_SPECIFIC_ACCESS_DENIED_ERROR'
+       ]);
+       return permissionCodes.has(error.code);
+     }
+
+     async function tableExists(tableName) {
+       try {
+         await db.execute(`SELECT 1 FROM ${tableName} LIMIT 1`);
+         return true;
+       } catch (error) {
+         if (isTableMissingError(error)) {
+           return false;
+         }
+         // For any other DB issue, don't block request-time flows here.
+         console.warn(`[DB] Table existence check failed for ${tableName}:`, error.code || error.message);
+         return true;
+       }
+     }
+
+     async function safeSchemaExecute(sql, context) {
+       try {
+         await db.execute(sql);
+         return true;
+       } catch (error) {
+         const detail = error.code || error.message;
+         if (isPermissionError(error)) {
+           console.warn(`[DB] Skipping schema change (${context}) due to limited DB permissions: ${detail}`);
+           return false;
+         }
+         console.warn(`[DB] Schema change warning (${context}): ${detail}`);
+         return false;
+       }
+     }
+
      async function ensurePaymentSessionsTable() {
-       await db.execute(`
+       const exists = await tableExists('payment_sessions');
+       if (exists) return;
+
+       await safeSchemaExecute(`
          CREATE TABLE IF NOT EXISTS payment_sessions (
            id VARCHAR(255) PRIMARY KEY,
            user_id INT,
@@ -319,11 +366,13 @@ const plantDetailsMap = require('./plantDetails');
            status VARCHAR(50) DEFAULT 'pending',
            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
          )
-       `);
+       `, 'create payment_sessions');
      }
 
      async function ensureTradeRequestsTable() {
-       await db.execute(`
+       const exists = await tableExists('trade_requests');
+       if (!exists) {
+         await safeSchemaExecute(`
          CREATE TABLE IF NOT EXISTS trade_requests (
            id INT AUTO_INCREMENT PRIMARY KEY,
            sender_id VARCHAR(255) NOT NULL,
@@ -336,23 +385,14 @@ const plantDetailsMap = require('./plantDetails');
            sender_seen TINYINT(1) DEFAULT 0,
            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
          )
-       `);
+       `, 'create trade_requests');
+       }
 
-       try {
-         await db.execute('ALTER TABLE trade_requests MODIFY sender_id VARCHAR(255) NOT NULL');
-       } catch (e) {}
-       try {
-         await db.execute('ALTER TABLE trade_requests MODIFY receiver_id VARCHAR(255) NULL');
-       } catch (e) {}
-       try {
-         await db.execute('ALTER TABLE trade_requests MODIFY plant_id VARCHAR(255) NOT NULL');
-       } catch (e) {}
-       try {
-         await db.execute('ALTER TABLE trade_requests ADD COLUMN receiver_seen TINYINT(1) DEFAULT 0');
-       } catch (e) {}
-       try {
-         await db.execute('ALTER TABLE trade_requests ADD COLUMN sender_seen TINYINT(1) DEFAULT 0');
-       } catch (e) {}
+       await safeSchemaExecute('ALTER TABLE trade_requests MODIFY sender_id VARCHAR(255) NOT NULL', 'alter trade_requests sender_id');
+       await safeSchemaExecute('ALTER TABLE trade_requests MODIFY receiver_id VARCHAR(255) NULL', 'alter trade_requests receiver_id');
+       await safeSchemaExecute('ALTER TABLE trade_requests MODIFY plant_id VARCHAR(255) NOT NULL', 'alter trade_requests plant_id');
+       await safeSchemaExecute('ALTER TABLE trade_requests ADD COLUMN receiver_seen TINYINT(1) DEFAULT 0', 'alter trade_requests receiver_seen');
+       await safeSchemaExecute('ALTER TABLE trade_requests ADD COLUMN sender_seen TINYINT(1) DEFAULT 0', 'alter trade_requests sender_seen');
      }
 
      // --- Marketplace Endpoints ---
