@@ -178,27 +178,39 @@ export default function Scan() {
       });
       const data = await response.json();
 
+      if (!response.ok || !data.sessionId) {
+        throw new Error(data.error || 'Failed to initiate payment session');
+      }
+
       setPaymentSessionId(data.sessionId);
       setPaymentStatus('pending');
       setShowCart(false);
       setShowQRPrompt(true);
     } catch (err) {
-      showToast('Failed to initiate payment. Please try again.', 'error');
+      showToast(err.message || 'Failed to initiate payment. Please try again.', 'error');
     }
   };
 
   const handleFinalizePurchase = async () => {
+    if (!paymentSessionId) {
+      showToast('Payment session missing. Please start checkout again.', 'error');
+      setShowQRPrompt(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/payment/complete/${paymentSessionId}`, {
         method: 'POST'
       });
+
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setCart([]);
         localStorage.removeItem('cart');
         setSuccess(true);
         setShowQRPrompt(false);
       } else {
-        showToast('Failed to finalize checkout. Please try again.', 'error');
+        showToast(data.error || 'Failed to finalize checkout. Please try again.', 'error');
       }
     } catch (err) {
       console.error("Checkout finalization error:", err);

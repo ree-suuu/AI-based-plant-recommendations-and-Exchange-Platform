@@ -406,28 +406,40 @@ export default function Marketplace() {
       });
       const data = await response.json();
 
+      if (!response.ok || !data.sessionId) {
+        throw new Error(data.error || 'Failed to initiate payment session');
+      }
+
       setPaymentSessionId(data.sessionId);
       setPaymentStatus('pending');
       setShowCart(false);
       setShowQRPrompt(true);
     } catch (err) {
       console.error("Payment initiation error:", err);
-      showToast('Failed to initiate payment. Please try again.', 'error');
+      showToast(err.message || 'Failed to initiate payment. Please try again.', 'error');
     }
   };
 
   const handleFinalizePurchase = async () => {
+    if (!paymentSessionId) {
+      showToast('Payment session missing. Please start checkout again.', 'error');
+      setShowQRPrompt(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/payment/complete/${paymentSessionId}`, {
         method: 'POST'
       });
+
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         setCart([]);
         localStorage.removeItem('cart');
         setSuccess(true);
         setShowQRPrompt(false);
       } else {
-        showToast('Failed to finalize checkout. Please try again.', 'error');
+        showToast(data.error || 'Failed to finalize checkout. Please try again.', 'error');
       }
     } catch (err) {
       console.error("Checkout finalization error:", err);
@@ -549,6 +561,12 @@ export default function Marketplace() {
 
   const submitTradeRequest = async (type) => {
     const uId = localStorage.getItem('leafLifeUserId') || 1;
+
+    if (!tradePlant?.id || !tradePlant?.seller_id) {
+      showToast('Invalid listing. Please refresh and try again.', 'error');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/trade/request`, {
         method: 'POST',
@@ -562,6 +580,11 @@ export default function Marketplace() {
         })
       });
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send request');
+      }
+
       if (data.success) {
         showToast('Request sent successfully! ✅', 'info');
         setShowTradeModal(false);
@@ -571,6 +594,7 @@ export default function Marketplace() {
       }
     } catch (err) {
       console.error("Trade request error:", err);
+      showToast(err.message || 'Something went wrong. Please try again.', 'error');
     }
   };
 

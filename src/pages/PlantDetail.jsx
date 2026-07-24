@@ -251,13 +251,17 @@ export default function PlantDetail() {
       });
       const data = await response.json();
 
+      if (!response.ok || !data.sessionId) {
+        throw new Error(data.error || 'Failed to initiate payment session');
+      }
+
       setPaymentSessionId(data.sessionId);
       setPaymentStatus('pending');
       setShowCart(false);
       setShowQRPrompt(true);
       setIsTipsPayment(false);
     } catch (err) {
-      showToast('Failed to initiate payment. Please try again.', 'error');
+      showToast(err.message || 'Failed to initiate payment. Please try again.', 'error');
     }
   };
 
@@ -284,12 +288,16 @@ export default function PlantDetail() {
       });
       const data = await response.json();
 
+      if (!response.ok || !data.sessionId) {
+        throw new Error(data.error || 'Failed to initiate payment session');
+      }
+
       setPaymentSessionId(data.sessionId);
       setPaymentStatus('pending');
       setShowQRPrompt(true);
       setIsTipsPayment(true);
     } catch (err) {
-      showToast('Failed to initiate payment for tips. Please try again.', 'error');
+      showToast(err.message || 'Failed to initiate payment for tips. Please try again.', 'error');
     }
   };
 
@@ -316,6 +324,10 @@ export default function PlantDetail() {
       });
       const data = await response.json();
 
+      if (!response.ok || !data.sessionId) {
+        throw new Error(data.error || 'Failed to initiate payment session');
+      }
+
       setPaymentSessionId(data.sessionId);
       setPaymentStatus('pending');
       setShowCart(false);
@@ -323,15 +335,23 @@ export default function PlantDetail() {
       setIsTipsPayment(false);
     } catch (err) {
       console.error("Immediate purchase initiation error:", err);
-      showToast('Failed to initiate payment. Please try again.', 'error');
+      showToast(err.message || 'Failed to initiate payment. Please try again.', 'error');
     }
   };
 
   const handleFinalizePurchase = async () => {
+    if (!paymentSessionId) {
+      showToast('Payment session missing. Please start checkout again.', 'error');
+      setShowQRPrompt(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/payment/complete/${paymentSessionId}`, {
         method: 'POST'
       });
+
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         if (!isTipsPayment) {
           setCart([]);
@@ -341,7 +361,7 @@ export default function PlantDetail() {
         setShowQRPrompt(false);
         fetchPlantAndImages(); // Refresh to show tips or updated ownership
       } else {
-        showToast('Failed to finalize checkout. Please try again.', 'error');
+        showToast(data.error || 'Failed to finalize checkout. Please try again.', 'error');
       }
     } catch (err) {
       console.error("Checkout finalization error:", err);
@@ -371,6 +391,12 @@ export default function PlantDetail() {
 
   const submitTradeRequest = async (type) => {
     const currentUserId = localStorage.getItem('leafLifeUserId') || 1;
+
+    if (!plant?.id || !plant?.seller_id) {
+      showToast('This listing cannot receive swap requests.', 'error');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/trade/request`, {
         method: 'POST',
@@ -384,6 +410,11 @@ export default function PlantDetail() {
         })
       });
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send offer');
+      }
+
       if (data.success) {
         showToast('Swap offer sent successfully! ✅', 'info');
         setShowTradeModal(false);
@@ -393,7 +424,7 @@ export default function PlantDetail() {
       }
     } catch (err) {
       console.error("Trade request error:", err);
-      showToast('Something went wrong. Please try again.', 'error');
+      showToast(err.message || 'Something went wrong. Please try again.', 'error');
     }
   };
 

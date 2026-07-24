@@ -309,6 +309,52 @@ const plantDetailsMap = require('./plantDetails');
 
      initDB();
 
+     async function ensurePaymentSessionsTable() {
+       await db.execute(`
+         CREATE TABLE IF NOT EXISTS payment_sessions (
+           id VARCHAR(255) PRIMARY KEY,
+           user_id INT,
+           cart_items LONGTEXT,
+           total_amount INT,
+           status VARCHAR(50) DEFAULT 'pending',
+           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+         )
+       `);
+     }
+
+     async function ensureTradeRequestsTable() {
+       await db.execute(`
+         CREATE TABLE IF NOT EXISTS trade_requests (
+           id INT AUTO_INCREMENT PRIMARY KEY,
+           sender_id VARCHAR(255) NOT NULL,
+           receiver_id VARCHAR(255),
+           plant_id VARCHAR(255) NOT NULL,
+           request_type VARCHAR(50) NOT NULL,
+           status VARCHAR(50) DEFAULT 'pending',
+           offer_details TEXT,
+           receiver_seen TINYINT(1) DEFAULT 0,
+           sender_seen TINYINT(1) DEFAULT 0,
+           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+         )
+       `);
+
+       try {
+         await db.execute('ALTER TABLE trade_requests MODIFY sender_id VARCHAR(255) NOT NULL');
+       } catch (e) {}
+       try {
+         await db.execute('ALTER TABLE trade_requests MODIFY receiver_id VARCHAR(255) NULL');
+       } catch (e) {}
+       try {
+         await db.execute('ALTER TABLE trade_requests MODIFY plant_id VARCHAR(255) NOT NULL');
+       } catch (e) {}
+       try {
+         await db.execute('ALTER TABLE trade_requests ADD COLUMN receiver_seen TINYINT(1) DEFAULT 0');
+       } catch (e) {}
+       try {
+         await db.execute('ALTER TABLE trade_requests ADD COLUMN sender_seen TINYINT(1) DEFAULT 0');
+       } catch (e) {}
+     }
+
      // --- Marketplace Endpoints ---
 
      // Helper for fetching weather data (Monthly Average)
@@ -725,6 +771,7 @@ const plantDetailsMap = require('./plantDetails');
 
      app.post('/api/payment/complete/:sessionId', async (req, res) => {
        try {
+         await ensurePaymentSessionsTable();
          const { sessionId } = req.params;
          console.log(`[PAYMENT] Attempting to complete session: ${sessionId}`);
          
@@ -892,6 +939,7 @@ const plantDetailsMap = require('./plantDetails');
        // 1. Initiate payment session
        app.post('/api/payment/initiate', async (req, res) => {
          try {
+           await ensurePaymentSessionsTable();
            const { cartItems, userId, amount } = req.body;
            const sessionId = 'PAY-' + Date.now() + '-' + Math.round(Math.random() * 1000);
            
@@ -903,7 +951,7 @@ const plantDetailsMap = require('./plantDetails');
            res.json({ sessionId, status: 'pending' });
          } catch (error) {
            console.error('[PAYMENT] Initiate error:', error);
-           res.status(500).json({ error: 'Failed to initiate payment session' });
+           res.status(500).json({ error: 'Failed to initiate payment session', details: error.message });
          }
        });
 
@@ -938,39 +986,6 @@ const plantDetailsMap = require('./plantDetails');
            res.json(session);
          } catch (error) {
            res.status(500).json({ error: 'Failed to fetch bill' });
-         }
-       });
-
-       // 4. Complete payment session
-       app.post('/api/payment/complete/:sessionId', async (req, res) => {
-         try {
-           const { sessionId } = req.params;
-           const [rows] = await db.execute('SELECT * FROM payment_sessions WHERE id = ?', [sessionId]);
-           if (rows.length === 0) {
-             return res.status(404).json({ error: 'Session not found' });
-           }
-           const session = rows[0];
-           await db.execute('UPDATE payment_sessions SET status = "completed" WHERE id = ?', [sessionId]);
-
-           let cartItems = [];
-           try {
-             cartItems = typeof session.cart_items === 'string' ? JSON.parse(session.cart_items) : (session.cart_items || []);
-           } catch (e) {}
-           
-           const userId = session.user_id;
-
-           for (const item of cartItems) {
-             try {
-               if (item.id && typeof item.id === 'number') {
-                 await db.execute('UPDATE plants SET is_sold = 1, buyer_id = ? WHERE id = ?', [userId, item.id]);
-               }
-             } catch (e) {}
-           }
-
-           res.json({ success: true, message: 'Payment completed successfully' });
-         } catch (error) {
-           console.error('[PAYMENT] Complete error:', error);
-           res.status(500).json({ error: 'Failed to complete payment' });
          }
        });
 
@@ -1057,6 +1072,7 @@ const plantDetailsMap = require('./plantDetails');
       // Send a trade/buy request
       app.post('/api/trade/request', async (req, res) => {
         try {
+          await ensureTradeRequestsTable();
           const { senderId, receiverId, plantId, requestType, offerDetails } = req.body;
           if (!senderId || !plantId) {
             return res.status(400).json({ error: 'Sender ID and Plant ID are required' });
@@ -1083,13 +1099,14 @@ const plantDetailsMap = require('./plantDetails');
           res.json({ success: true, message: 'Request sent successfully' });
         } catch (error) {
           console.error('[TRADE] Request error:', error);
-          res.status(500).json({ error: 'Failed to send request' });
+          res.status(500).json({ error: 'Failed to send request', details: error.message });
         }
       });
 
       // Fetch requests for a user (both incoming and outgoing)
       app.get('/api/trade/requests/:userId', async (req, res) => {
         try {
+          await ensureTradeRequestsTable();
           const { userId } = req.params;
           
           const [incoming] = await db.execute(`
