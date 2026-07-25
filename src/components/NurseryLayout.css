@@ -1,77 +1,240 @@
+/* =============================
+   NURSERY SHELL LAYOUT
+   ============================= */
 .nursery-shell {
   display: flex;
   min-height: 100vh;
-  background: var(--bg-main);
+  background: var(--bg-main, #f4f7f4);
 }
 
+/* =============================
+   SIDEBAR
+   ============================= */
 .nursery-sidebar {
   width: 260px;
-  background: #ffffff;
-  border-right: 1px solid #e5e7eb;
-  padding: 1.5rem 1rem;
+  min-width: 260px;
+  background: linear-gradient(160deg, #1a3d2b 0%, #2d6a4f 60%, #1b4332 100%);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  padding: 1.5rem 1rem 1.25rem;
+  gap: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.18);
+  z-index: 10;
+}
+
+/* ---- Brand ---- */
+.nursery-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.25rem 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.nursery-logo-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a7f3d0;
+  flex-shrink: 0;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.15);
 }
 
 .nursery-brand h2 {
   margin: 0;
-  font-size: 1.5rem;
-  color: var(--primary);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.01em;
 }
 
 .nursery-brand p {
-  margin-top: 0.5rem;
-  color: var(--text-secondary);
+  margin: 1px 0 0;
+  font-size: 0.72rem;
+  color: rgba(167, 243, 208, 0.8);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
+/* ---- Divider ---- */
+.sidebar-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 0.75rem 0;
+  border-radius: 1px;
+}
+
+/* ---- Nav ---- */
 .nursery-nav {
-  display: grid;
-  gap: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0.25rem 0;
 }
 
 .nursery-nav-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  padding: 0.85rem 1rem;
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
+  gap: 11px;
+  padding: 0.72rem 1rem;
+  border-radius: 10px;
+  color: rgba(255,255,255,0.72);
   text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease;
+  position: relative;
   border: 1px solid transparent;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  letter-spacing: 0.01em;
 }
 
-.nursery-nav-item:hover,
+.nursery-nav-item .nav-icon {
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.18s ease;
+}
+
+.nursery-nav-item:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
+  transform: translateX(3px);
+}
+
+.nursery-nav-item:hover .nav-icon {
+  opacity: 1;
+}
+
 .nursery-nav-item.active {
-  background: #ecfdf5;
-  border-color: #d1fae5;
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.18);
+  font-weight: 700;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 
+.nursery-nav-item.active .nav-icon {
+  opacity: 1;
+  color: #6ee7b7;
+}
+
+/* Active indicator stripe */
+.nursery-nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  background: #6ee7b7;
+  border-radius: 0 3px 3px 0;
+}
+
+/* ---- Footer ---- */
+.sidebar-footer {
+  padding-top: 0.25rem;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255,255,255,0.07);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6ee7b7, #059669);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  letter-spacing: 0;
+}
+
+.sidebar-user-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-user-id {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-role {
+  font-size: 0.7rem;
+  color: rgba(167, 243, 208, 0.8);
+  font-weight: 500;
+}
+
+.signout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+  letter-spacing: 0.01em;
+}
+
+.signout-btn:hover {
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.35);
+  color: #fca5a5;
+}
+
+/* =============================
+   MAIN CONTENT
+   ============================= */
 .nursery-main {
   flex: 1;
-  padding: 2rem;
-}
-
-.nursery-topbar {
-  margin-bottom: 1.5rem;
-}
-
-.nursery-topbar h1 {
-  margin: 0;
-  font-size: 2rem;
-}
-
-.nursery-topbar p {
-  margin-top: 0.5rem;
-  color: var(--text-secondary);
+  min-width: 0;
+  background: var(--bg-main, #f4f7f4);
 }
 
 .nursery-content {
+  padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-height: 100vh;
 }
 
+/* =============================
+   RESPONSIVE
+   ============================= */
 @media (max-width: 900px) {
   .nursery-shell {
     flex-direction: column;
@@ -79,5 +242,58 @@
 
   .nursery-sidebar {
     width: 100%;
+    min-width: unset;
+    height: auto;
+    position: relative;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .nursery-brand {
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+
+  .sidebar-divider {
+    display: none;
+  }
+
+  .nursery-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .nursery-nav-item {
+    padding: 0.55rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+  .nursery-nav-item.active::before {
+    display: none;
+  }
+
+  .sidebar-footer {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sidebar-user {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .signout-btn {
+    width: auto;
+    padding: 0.55rem 1rem;
+  }
+
+  .nursery-content {
+    padding: 1.25rem 1rem;
   }
 }
