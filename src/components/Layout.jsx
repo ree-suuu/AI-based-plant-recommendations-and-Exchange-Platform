@@ -59,7 +59,7 @@ export default function Layout() {
     setIsAuthenticated(false);
     setUserName('Guest');
     setUserId(1);
-    openAuthModal();
+    navigate('/');
   };
 
   useEffect(() => {
