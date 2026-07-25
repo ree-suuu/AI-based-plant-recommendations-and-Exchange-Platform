@@ -1444,55 +1444,37 @@ const plantDetailsMap = require('./plantDetails');
 
       // --- Admin Dashboard Endpoints ---
       app.get('/api/admin/stats', async (req, res) => {
-        let totalUsers = 0;
-        let totalNurseries = 0;
-        let totalPlants = 0;
-        let totalOrders = 0;
-        let totalRevenue = 0;
-        let pendingNurseries = 0;
-
         try {
-          // Count distinct users across both tables (real live count, no seed override)
-          const [uCount] = await db.execute(`
-            SELECT COUNT(DISTINCT email) as count FROM (
-              SELECT email FROM users WHERE email IS NOT NULL AND email != ''
-              UNION
-              SELECT email FROM login_history WHERE email IS NOT NULL AND email != ''
-            ) combined_emails
+          // Total unique users = rows in users table + distinct emails in login_history not in users
+          const [usersCount] = await db.execute('SELECT COUNT(*) as count FROM users');
+          const [historyCount] = await db.execute(`
+            SELECT COUNT(DISTINCT email) as count FROM login_history 
+            WHERE email IS NOT NULL AND email != ''
+              AND email NOT IN (SELECT email FROM users WHERE email IS NOT NULL AND email != '')
           `);
-          totalUsers = uCount[0]?.count ?? 0;
+          const totalUsers = (Number(usersCount[0]?.count) || 0) + (Number(historyCount[0]?.count) || 0);
 
+          // Total nurseries = actual count in DB
           const [nCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
-          totalNurseries = nCount[0]?.count ?? 0;
+          const totalNurseries = Number(nCount[0]?.count) || 0;
 
           const [pCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
-          totalPlants = pCount[0]?.count ?? 0;
+          const totalPlants = Number(pCount[0]?.count) || 0;
 
           const [oCount] = await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE request_type = 'buy'");
-          totalOrders = oCount[0]?.count ?? 0;
+          const totalOrders = Number(oCount[0]?.count) || 0;
 
-          const [rev] = await db.execute("SELECT SUM(total_amount) as total FROM payment_sessions WHERE status = 'completed'");
-          totalRevenue = rev[0]?.total ?? 0;
+          const [rev] = await db.execute("SELECT COALESCE(SUM(total_amount), 0) as total FROM payment_sessions WHERE status = 'completed'");
+          const totalRevenue = Number(rev[0]?.total) || 0;
 
-          const [pending] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'User' OR role = 'pending'");
-          pendingNurseries = pending[0]?.count ?? 0;
+          const [pending] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'pending'");
+          const pendingNurseries = Number(pending[0]?.count) || 0;
 
-          // Only fall back to seeds if the DB tables don't exist yet (exception thrown)
+          res.json({ totalUsers, totalNurseries, totalPlants, totalOrders, totalRevenue, pendingNurseries });
         } catch (e) {
-          console.error('[ADMIN STATS] DB error, using seed fallback:', e.message);
-          totalUsers = SEED_ADMIN_USERS.length;
-          totalNurseries = SEED_ADMIN_NURSERIES.length;
-          totalPlants = MVP_PLANTS.length;
+          console.error('[ADMIN STATS] DB error:', e.message);
+          res.json({ totalUsers: 0, totalNurseries: 0, totalPlants: 0, totalOrders: 0, totalRevenue: 0, pendingNurseries: 0 });
         }
-
-        res.json({
-          totalUsers,
-          totalNurseries,
-          totalPlants,
-          totalOrders,
-          totalRevenue,
-          pendingNurseries
-        });
       });
 
       app.get('/api/admin/users', async (req, res) => {
@@ -1542,38 +1524,61 @@ const plantDetailsMap = require('./plantDetails');
       app.delete('/api/admin/users/:id', async (req, res) => {
         try {
           const { id } = req.params;
-          const userEmail = req.query.email || req.body?.email || null;
+          // email must be passed as query param from frontend
+          const targetEmail = req.query.email || null;
+          const realId = parseInt(id) > 10000 ? parseInt(id) - 10000 : parseInt(id);
 
-          let targetEmail = userEmail;
-
-          // Lookup email if not supplied in request
-          if (!targetEmail) {
+          // If we have an email, use it to find the real user id too
+          let userIdFromEmail = null;
+          if (targetEmail) {
             try {
-              const [u] = await db.execute('SELECT email FROM users WHERE id = ? OR id = ?', [id, parseInt(id) - 10000]);
-              if (u.length > 0 && u[0].email) {
-                targetEmail = u[0].email;
-              } else {
-                const [h] = await db.execute('SELECT email FROM login_history WHERE id = ? OR id = ?', [id, parseInt(id) - 10000]);
-                if (h.length > 0 && h[0].email) targetEmail = h[0].email;
-              }
+              const [u] = await db.execute('SELECT id FROM users WHERE email = ?', [targetEmail]);
+              if (u.length > 0) userIdFromEmail = u[0].id;
             } catch (e) {}
           }
 
-          // Purge from users table
-          await db.execute('DELETE FROM users WHERE id = ? OR id = ? OR (email IS NOT NULL AND email = ?)', [id, parseInt(id) - 10000, targetEmail || '___none___']);
+          const effectiveId = userIdFromEmail || realId;
 
-          // Purge ALL records from login_history table matching email or ID
+          // 1. Delete from users table
+          await db.execute('DELETE FROM users WHERE id = ? OR id = ?', [realId, effectiveId]);
+          if (targetEmail) {
+            await db.execute('DELETE FROM users WHERE email = ?', [targetEmail]);
+          }
+
+          // 2. Delete ALL login_history rows for this email (every login event)
           if (targetEmail) {
             await db.execute('DELETE FROM login_history WHERE email = ?', [targetEmail]);
           }
-          await db.execute('DELETE FROM login_history WHERE id = ? OR id = ?', [id, parseInt(id) - 10000]);
+          await db.execute('DELETE FROM login_history WHERE id = ? OR id = ?', [realId, effectiveId]);
 
-          res.json({ success: true, message: 'User deleted successfully' });
+          // 3. Delete plants listed by this user
+          if (targetEmail || effectiveId) {
+            try {
+              await db.execute('DELETE FROM plants WHERE seller_id = ? OR seller_id = ?', [realId, effectiveId]);
+            } catch (e) {}
+          }
+
+          // 4. Delete trade requests by this user
+          try {
+            const idStr = String(effectiveId);
+            await db.execute(
+              'DELETE FROM trade_requests WHERE sender_id = ? OR receiver_id = ? OR sender_id = ? OR receiver_id = ?',
+              [idStr, idStr, String(realId), String(realId)]
+            );
+          } catch (e) {}
+
+          // 5. Delete payment sessions by this user
+          try {
+            await db.execute('DELETE FROM payment_sessions WHERE user_id = ? OR user_id = ?', [realId, effectiveId]);
+          } catch (e) {}
+
+          res.json({ success: true, message: 'User and all associated data deleted successfully' });
         } catch (error) {
           console.error('[ADMIN] Delete user error:', error);
           res.status(500).json({ error: 'Failed to delete user' });
         }
       });
+
 
       app.get('/api/admin/nurseries', async (req, res) => {
         try {
