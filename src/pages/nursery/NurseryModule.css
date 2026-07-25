@@ -461,3 +461,16 @@ select:focus,
   gap: 1rem;
   flex-wrap: wrap;
 }
+
+@media (max-width: 768px) {
+  .nursery-main, .module-main {
+    padding: 1.25rem 1rem;
+  }
+  .trending-card {
+    grid-template-columns: 1fr;
+  }
+  .table-container, .nursery-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

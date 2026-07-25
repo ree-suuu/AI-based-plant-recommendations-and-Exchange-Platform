@@ -10,11 +10,13 @@ import {
   Leaf,
   Lightbulb,
   Mail,
+  Menu,
   Quote,
   Target,
   TrendingUp,
   Users,
   Wind,
+  X,
 } from 'lucide-react';
 import './Landing.css';
 import './AboutUs.css';
@@ -90,6 +92,7 @@ function RevealRight({ children, delay = 0 }) {
 export default function AboutUs() {
   const navigate = useNavigate();
   const [authOpen, setAuthOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('leafLifeSubmitted') === 'true';
@@ -130,7 +133,7 @@ export default function AboutUs() {
 
   return (
     <div className="lp-root about-root">
-      {/* Navbar — unchanged */}
+      {/* Navbar */}
       <nav className="lp-nav">
         <div className="lp-nav-inner">
           <Link to="/" className="lp-brand" aria-label="Leaf & Life Home">
@@ -140,7 +143,7 @@ export default function AboutUs() {
             <span className="lp-brand-text">Leaf &amp; Life</span>
           </Link>
 
-          <div className="lp-nav-links">
+          <div className="lp-nav-center">
             <Link className="lp-nav-link" to="/">Home</Link>
             <Link className="lp-nav-link" to="/about">About Us</Link>
             <Link className="lp-nav-link" to="/contact">Contact</Link>
@@ -165,7 +168,44 @@ export default function AboutUs() {
               Get Started
             </button>
           </div>
+
+          <button
+            type="button"
+            className="lp-mobile-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="lp-mobile-drawer">
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/'); }}>Home</button>
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/about'); }}>About Us</button>
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/contact'); }}>Contact</button>
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/nursery/signin'); }}>Nursery</button>
+            <div className="lp-mobile-drawer-actions">
+              {isSubmitted && (
+                <button
+                  type="button"
+                  className="lp-btn lp-btn-ghost lp-btn-sm"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    localStorage.removeItem('leafLifeSubmitted');
+                    localStorage.removeItem('leafLifeAuthenticated');
+                    window.location.reload();
+                  }}
+                >
+                  Switch Account
+                </button>
+              )}
+              <button type="button" className="lp-btn lp-btn-primary" onClick={() => { setMobileMenuOpen(false); handleGetStarted(); }}>
+                Get Started
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       <AuthModal

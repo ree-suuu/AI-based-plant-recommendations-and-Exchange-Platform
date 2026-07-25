@@ -459,13 +459,6 @@
   .au-values-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
-/* ── Legacy classes for navbar/footer (from Landing.css) ── */
-.lp-nav-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 .lp-btn-sm {
   padding: 8px 14px;
   font-size: 0.85rem;

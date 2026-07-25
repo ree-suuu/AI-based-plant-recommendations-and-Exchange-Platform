@@ -473,10 +473,23 @@
   text-decoration: underline;
 }
 
+@media (max-width: 640px) {
+  .am-backdrop {
+    padding: 12px;
+    align-items: flex-start;
+    overflow-y: auto;
+  }
+  .am-shell {
+    border-radius: 20px;
+    max-height: 92vh;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 520px) {
   .am-card {
-    width: calc(100% - 24px);
-    padding: 18px;
+    width: calc(100% - 16px);
+    padding: 18px 14px;
   }
   .am-social-icon-row {
     gap: 10px;

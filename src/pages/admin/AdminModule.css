@@ -461,3 +461,13 @@
   .admin-page { flex-direction: column; }
   .module-sidebar { width: 100%; height: auto; position: relative; padding: 1rem; }
 }
+
+@media (max-width: 768px) {
+  .module-main {
+    padding: 1.25rem 1rem;
+  }
+  .data-table-container, .admin-card, .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

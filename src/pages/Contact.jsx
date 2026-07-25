@@ -6,6 +6,7 @@ import {
   Phone,
   MapPin,
   MessageCircle,
+  Menu,
   Sparkles,
   ShoppingBag,
   Handshake,
@@ -22,6 +23,7 @@ import {
   Users,
   Map,
   Share2,
+  X,
 } from 'lucide-react';
 import './Contact.css';
 import logo from '../assets/Leaf and Life logo.png';
@@ -30,6 +32,7 @@ import AuthModal from '../components/AuthModal';
 export default function Contact() {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('leafLifeSubmitted') === 'true';
@@ -226,7 +229,44 @@ export default function Contact() {
               Get Started
             </button>
           </div>
+
+          <button
+            type="button"
+            className="lp-mobile-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
+
+        {mobileMenuOpen && (
+          <div className="lp-mobile-drawer">
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/?landing=1'); }}>Home</button>
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/about'); }}>About Us</button>
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/contact'); }}>Contact</button>
+            <button type="button" className="lp-mobile-link" onClick={() => { setMobileMenuOpen(false); navigate('/nursery/signin'); }}>Nursery</button>
+            <div className="lp-mobile-drawer-actions">
+              {isSubmitted && (
+                <button
+                  type="button"
+                  className="lp-btn lp-btn-ghost lp-btn-sm"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    localStorage.removeItem('leafLifeSubmitted');
+                    localStorage.removeItem('leafLifeAuthenticated');
+                    window.location.reload();
+                  }}
+                >
+                  Switch Account
+                </button>
+              )}
+              <button type="button" className="lp-btn lp-btn-primary" onClick={() => { setMobileMenuOpen(false); handleGetStarted(); }}>
+                Get Started
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ─── HERO SPLIT ─── */}
