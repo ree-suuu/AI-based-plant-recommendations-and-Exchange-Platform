@@ -623,14 +623,12 @@ const plantDetailsMap = require('./plantDetails');
        }
      });
 
-      app.post('/api/nursery/plants', async (req, res) => {
+      app.post('/api/nursery/plants', uploadPlant.single('image'), async (req, res) => {
         try {
           const {
             name,
-            category,
             price,
             description,
-            image,
             available,
             nurseryExternalId,
             location,
@@ -640,10 +638,17 @@ const plantDetailsMap = require('./plantDetails');
             return res.status(400).json({ error: 'Missing required nursery plant fields' });
           }
 
+          // Determine image path: use uploaded file or fallback
+          let imagePath = '/plants/default.jpg';
+          if (req.file) {
+            imagePath = '/uploads/plants/' + req.file.filename;
+          } else if (req.body.image) {
+            imagePath = req.body.image;
+          }
+
           const [nurseryRows] = await db.execute('SELECT * FROM nurseries WHERE external_id = ?', [nurseryExternalId]);
           let nursery = nurseryRows[0];
           if (!nursery) {
-            // Create a simple nursery record for the external nursery if not already present
             await db.execute(
               'INSERT INTO nurseries (external_id, nursery_name, owner_name, email, phone, address) VALUES (?, ?, ?, ?, ?, ?)',
               [nurseryExternalId, req.body.nurseryName || 'Partner Nursery', req.body.ownerName || '', req.body.email || '', req.body.phone || '', req.body.location || '']
@@ -661,10 +666,10 @@ const plantDetailsMap = require('./plantDetails');
             VALUES (?, ?, ?, ?, ?, 'Any', '2', 10, 35, 5, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
           const [result] = await db.execute(insertPlant, [
             name,
-            category || 'plant',
+            'plant',
             price,
             location || 'Partner Nursery',
-            image || '/plants/default.jpg',
+            imagePath,
             detailLookup.scientificName || '',
             detailLookup.nepaliName || '',
             detailLookup.englishName || name,
@@ -684,15 +689,13 @@ const plantDetailsMap = require('./plantDetails');
         }
       });
 
-      app.put('/api/nursery/plants/:id', async (req, res) => {
+      app.put('/api/nursery/plants/:id', uploadPlant.single('image'), async (req, res) => {
         try {
           const { id } = req.params;
           const {
             name,
-            category,
             price,
             description,
-            image,
             available,
             location,
           } = req.body;
@@ -701,10 +704,17 @@ const plantDetailsMap = require('./plantDetails');
           const plant = rows[0];
           if (!plant) return res.status(404).json({ error: 'Nursery plant not found' });
 
+          // Use newly uploaded file, or keep existing image
+          let imagePath = plant.image;
+          if (req.file) {
+            imagePath = '/uploads/plants/' + req.file.filename;
+          } else if (req.body.image) {
+            imagePath = req.body.image;
+          }
+
           await db.execute(
             `UPDATE plants SET
               name = ?,
-              type = ?,
               price = ?,
               location = ?,
               image = ?,
@@ -713,10 +723,9 @@ const plantDetailsMap = require('./plantDetails');
              WHERE id = ?`,
             [
               name || plant.name,
-              category || plant.type,
               price || plant.price,
               location || plant.location,
-              image || plant.image,
+              imagePath,
               description || plant.description,
               typeof available !== 'undefined' ? (available ? 1 : 0) : plant.available,
               id,

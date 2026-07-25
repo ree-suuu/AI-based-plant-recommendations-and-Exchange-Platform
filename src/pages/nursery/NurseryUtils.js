@@ -247,7 +247,7 @@ export function toggleNurseryProductAvailable(userId, productId) {
   // Use setNurseryProductAvailabilityOnServer instead
 }
 
-export async function syncNurseryProductToServer(userId, product) {
+export async function syncNurseryProductToServer(userId, product, imageFile = null) {
   if (typeof window === 'undefined') return null;
   
   // Use backendPlantId if it's already a numeric DB ID, otherwise it's a local temp ID
@@ -256,6 +256,32 @@ export async function syncNurseryProductToServer(userId, product) {
   const method = isUpdate ? 'PUT' : 'POST';
 
   const profile = await getNurseryProfile(userId);
+
+  // If an image file is selected, send as multipart/form-data
+  if (imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    formData.append('name', product.name || '');
+    formData.append('price', product.price || 0);
+    formData.append('quantity', product.quantity || 0);
+    formData.append('description', product.description || '');
+    formData.append('available', product.available ? '1' : '0');
+    formData.append('nurseryExternalId', userId);
+    formData.append('nurseryName', profile?.nursery_name || 'My Nursery');
+    formData.append('location', profile?.address || 'Partner Nursery');
+    formData.append('phone', profile?.phone || '');
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      body: formData,
+      // DO NOT set Content-Type — browser sets multipart boundary automatically
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to sync product');
+    return data;
+  }
+
+  // No file — send as JSON (keeps existing image or uses provided URL)
   const payload = {
     ...product,
     nurseryExternalId: userId,
