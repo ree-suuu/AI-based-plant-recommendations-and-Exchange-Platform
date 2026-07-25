@@ -289,7 +289,7 @@ const plantDetailsMap = require('./plantDetails');
           console.log('Backfilling and repairing plant details into database...');
           for (const [name, detail] of Object.entries(plantDetailsMap)) {
             await db.execute(
-              'UPDATE plants SET scientific_name = ?, nepali_name = ?, english_name = ?, description = ? WHERE LOWER(name) = LOWER(?) OR nepali_name LIKE "%?%"',
+              'UPDATE plants SET scientific_name = ?, nepali_name = ?, english_name = ?, description = ? WHERE LOWER(name) = LOWER(?)',
               [detail.scientificName, detail.nepaliName, detail.englishName, detail.description, name]
             );
           }
@@ -638,15 +638,22 @@ const plantDetailsMap = require('./plantDetails');
             nursery = newNurseryRows[0];
           }
 
+          // Look up plant details from local map for proper Nepali/scientific names
+          const lookupKey = Object.keys(plantDetailsMap).find(k => k.toLowerCase() === name.toLowerCase()) || null;
+          const detailLookup = lookupKey ? plantDetailsMap[lookupKey] : {};
+
           const insertPlant = `INSERT INTO plants
             (name, type, price, location, image, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, available, nursery_id, nursery_name, nursery_external_id, nursery_location, nursery_phone, is_sold)
-            VALUES (?, ?, ?, ?, ?, 'Any', '2', 10, 35, 5, '', '', '', '', ?, ?, ?, ?, ?, ?, ?, 0)`;
+            VALUES (?, ?, ?, ?, ?, 'Any', '2', 10, 35, 5, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
           const [result] = await db.execute(insertPlant, [
             name,
             category || 'plant',
             price,
             location || 'Partner Nursery',
             image || '/plants/default.jpg',
+            detailLookup.scientificName || '',
+            detailLookup.nepaliName || '',
+            detailLookup.englishName || name,
             description || '',
             available ? 1 : 0,
             nursery.id,
@@ -1058,11 +1065,15 @@ const plantDetailsMap = require('./plantDetails');
           const { name, type, price, location, listingType, sellerId, description } = req.body;
           const imagePath = req.file ? `/uploads/plants/${req.file.filename}` : '/plants/default.jpg';
 
+          // Look up Nepali/scientific names from local map
+          const lookupKeyComm = Object.keys(plantDetailsMap).find(k => k.toLowerCase() === (name || '').toLowerCase()) || null;
+          const detailComm = lookupKeyComm ? plantDetailsMap[lookupKeyComm] : {};
+
           const [result] = await db.execute(
             `INSERT INTO plants 
-             (name, type, price, location, image, is_listed, listing_type, seller_id, original_price, description, space_tag, sunlight_need) 
-             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 'Any', '2')`,
-            [name, type || 'plant', price, location || 'Kathmandu', imagePath, listingType, sellerId, price, description || '']
+             (name, type, price, location, image, is_listed, listing_type, seller_id, original_price, description, space_tag, sunlight_need, scientific_name, nepali_name, english_name) 
+             VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 'Any', '2', ?, ?, ?)`,
+            [name, type || 'plant', price, location || 'Kathmandu', imagePath, listingType, sellerId, price, description || '', detailComm.scientificName || '', detailComm.nepaliName || '', detailComm.englishName || name]
           );
 
           res.json({ success: true, message: 'Product added to marketplace', plantId: result.insertId });
