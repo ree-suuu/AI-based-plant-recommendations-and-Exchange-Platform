@@ -2,26 +2,38 @@ import { API_BASE_URL } from '../../apiConfig';
 const API_BASE = `${API_BASE_URL}/api/admin`;
 
 export async function getAdminStats() {
+  const defaultStats = {
+    totalUsers: 0,
+    totalNurseries: 0,
+    totalPlants: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    pendingNurseries: 0
+  };
+
   try {
     const response = await fetch(`${API_BASE}/stats`);
-    return await response.json();
+    if (!response.ok) return defaultStats;
+    const data = await response.json();
+    if (!data || data.error) return defaultStats;
+    return {
+      totalUsers: data.totalUsers || 0,
+      totalNurseries: data.totalNurseries || 0,
+      totalPlants: data.totalPlants || 0,
+      totalOrders: data.totalOrders || 0,
+      totalRevenue: data.totalRevenue || 0,
+      pendingNurseries: data.pendingNurseries || 0
+    };
   } catch (err) {
     console.error('Admin stats fetch error:', err);
-    return {
-      totalUsers: 0,
-      totalNurseries: 0,
-      totalPlants: 0,
-      totalOrders: 0,
-      totalRevenue: 0,
-      pendingNurseries: 0
-    };
+    return defaultStats;
   }
 }
 
 export async function getAdminUsers() {
   try {
     const response = await fetch(`${API_BASE}/users`);
-    if (!response.ok) throw new Error('Failed to fetch users');
+    if (!response.ok) return [];
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   } catch (err) {
@@ -33,8 +45,11 @@ export async function getAdminUsers() {
 export async function getAdminNurseries() {
   try {
     const response = await fetch(`${API_BASE}/nurseries`);
-    return await response.json();
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (err) {
+    console.error('getAdminNurseries error:', err);
     return [];
   }
 }
@@ -42,8 +57,11 @@ export async function getAdminNurseries() {
 export async function getAdminPlants() {
   try {
     const response = await fetch(`${API_BASE}/plants`);
-    return await response.json();
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (err) {
+    console.error('getAdminPlants error:', err);
     return [];
   }
 }
@@ -51,8 +69,11 @@ export async function getAdminPlants() {
 export async function getAdminOrders() {
   try {
     const response = await fetch(`${API_BASE}/orders`);
-    return await response.json();
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (err) {
+    console.error('getAdminOrders error:', err);
     return [];
   }
 }
@@ -71,10 +92,12 @@ export function setAdminSession(user) {
 
 export function getAdminSession() {
   if (typeof window === 'undefined') return null;
-  const session = JSON.parse(window.localStorage.getItem(STORAGE_ADMIN_SESSION_KEY));
-  if (session && session.authenticated && session.expiresAt > Date.now()) {
-    return session;
-  }
+  try {
+    const session = JSON.parse(window.localStorage.getItem(STORAGE_ADMIN_SESSION_KEY));
+    if (session && session.authenticated && session.expiresAt > Date.now()) {
+      return session;
+    }
+  } catch (e) {}
   clearAdminSession();
   return null;
 }

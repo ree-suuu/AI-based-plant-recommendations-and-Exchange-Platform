@@ -20,9 +20,10 @@ export default function AdminProducts() {
     fetchPlants();
   }, []);
 
-  const filteredPlants = plants.filter(p => 
-    p.name.toLowerCase().includes(query.toLowerCase()) || 
-    p.type.toLowerCase().includes(query.toLowerCase())
+  const safePlants = Array.isArray(plants) ? plants : [];
+  const filteredPlants = safePlants.filter(p => 
+    (p.name || '').toLowerCase().includes(query.toLowerCase()) || 
+    (p.type || '').toLowerCase().includes(query.toLowerCase())
   );
 
   return (

@@ -12,7 +12,7 @@ export default function AdminSalesReport() {
       const s = await getAdminStats();
       const o = await getAdminOrders();
       setStats(s);
-      setRecentOrders(o.slice(0, 5));
+      setRecentOrders(Array.isArray(o) ? o.slice(0, 5) : []);
     };
     fetchData();
   }, []);

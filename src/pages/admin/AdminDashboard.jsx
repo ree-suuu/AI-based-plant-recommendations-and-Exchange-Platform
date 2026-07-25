@@ -89,7 +89,7 @@ export default function AdminDashboard() {
           <div className="stat-icon revenue"><DollarSign size={24} /></div>
           <div className="stat-content">
             <span>Platform Revenue</span>
-            <strong>Rs. {stats.totalRevenue.toLocaleString()}</strong>
+            <strong>Rs. {(stats?.totalRevenue || 0).toLocaleString()}</strong>
           </div>
         </div>
       </div>

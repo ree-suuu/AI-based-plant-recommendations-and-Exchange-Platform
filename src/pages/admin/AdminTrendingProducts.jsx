@@ -7,16 +7,17 @@ export default function AdminTrendingProducts() {
   const [plants, setPlants] = useState([]);
   
   useEffect(() => {
-    const fetchPlants = async () => {
+    const fetchData = async () => {
       const data = await getAdminPlants();
+      const safeData = Array.isArray(data) ? data : [];
       // Sort by trending (views + sales)
-      const sorted = data
+      const sorted = safeData
         .slice()
         .sort((a, b) => ((b.views || 0) + (b.salesCount || 0)) - ((a.views || 0) + (a.salesCount || 0)))
         .slice(0, 10);
       setPlants(sorted);
     };
-    fetchPlants();
+    fetchData();
   }, []);
 
   return (
