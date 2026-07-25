@@ -1452,6 +1452,7 @@ const plantDetailsMap = require('./plantDetails');
         let pendingNurseries = 0;
 
         try {
+          // Count distinct users across both tables (real live count, no seed override)
           const [uCount] = await db.execute(`
             SELECT COUNT(DISTINCT email) as count FROM (
               SELECT email FROM users WHERE email IS NOT NULL AND email != ''
@@ -1459,28 +1460,26 @@ const plantDetailsMap = require('./plantDetails');
               SELECT email FROM login_history WHERE email IS NOT NULL AND email != ''
             ) combined_emails
           `);
-          totalUsers = uCount[0]?.count || 0;
+          totalUsers = uCount[0]?.count ?? 0;
 
           const [nCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
-          totalNurseries = nCount[0]?.count || 0;
+          totalNurseries = nCount[0]?.count ?? 0;
 
           const [pCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
-          totalPlants = pCount[0]?.count || 0;
+          totalPlants = pCount[0]?.count ?? 0;
 
           const [oCount] = await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE request_type = 'buy'");
-          totalOrders = oCount[0]?.count || 0;
+          totalOrders = oCount[0]?.count ?? 0;
 
           const [rev] = await db.execute("SELECT SUM(total_amount) as total FROM payment_sessions WHERE status = 'completed'");
-          totalRevenue = rev[0]?.total || 0;
+          totalRevenue = rev[0]?.total ?? 0;
 
           const [pending] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'User' OR role = 'pending'");
-          pendingNurseries = pending[0]?.count || 0;
+          pendingNurseries = pending[0]?.count ?? 0;
 
-          // If DB is completely empty (0 users/nurseries/plants), fall back to seed counts
-          if (totalUsers === 0) totalUsers = SEED_ADMIN_USERS.length;
-          if (totalNurseries === 0) totalNurseries = SEED_ADMIN_NURSERIES.length;
-          if (totalPlants === 0) totalPlants = MVP_PLANTS.length;
+          // Only fall back to seeds if the DB tables don't exist yet (exception thrown)
         } catch (e) {
+          console.error('[ADMIN STATS] DB error, using seed fallback:', e.message);
           totalUsers = SEED_ADMIN_USERS.length;
           totalNurseries = SEED_ADMIN_NURSERIES.length;
           totalPlants = MVP_PLANTS.length;
@@ -1499,25 +1498,33 @@ const plantDetailsMap = require('./plantDetails');
       app.get('/api/admin/users', async (req, res) => {
         try {
           let rows = [];
+          // Fetch registered users from the users table
+          const [usersData] = await db.execute('SELECT id, full_name, email, role, created_at FROM users ORDER BY created_at DESC');
+
+          // Fetch login_history users NOT already in users table.
+          // GROUP BY email to deduplicate — login_history has one row per login event!
+          const [historyData] = await db.execute(`
+            SELECT MIN(id) + 10000 as id, full_name, email, 'User' as role, MIN(signup_time) as created_at 
+            FROM login_history 
+            WHERE email IS NOT NULL
+              AND email != ''
+              AND email NOT IN (SELECT email FROM users WHERE email IS NOT NULL AND email != '')
+            GROUP BY email
+            ORDER BY MIN(signup_time) DESC
+          `);
+
+          rows = [...(usersData || []), ...(historyData || [])];
+
+          return res.json(rows);
+        } catch (error) {
+          console.error('[ADMIN] Get users error:', error);
+          // Last resort: just return users table
           try {
-            const [usersData] = await db.execute('SELECT id, full_name, email, role, created_at FROM users');
-            const [historyData] = await db.execute(`
-              SELECT id + 10000 as id, full_name, email, 'User' as role, signup_time as created_at 
-              FROM login_history 
-              WHERE email NOT IN (SELECT email FROM users WHERE email IS NOT NULL)
-            `);
-            rows = [...(usersData || []), ...(historyData || [])];
-          } catch (e) {
-            const [fallbackData] = await db.execute('SELECT id, full_name, email, role, created_at FROM users');
-            rows = fallbackData || [];
-          }
-
-          if (rows && rows.length > 0) {
-            return res.json(rows);
-          }
-        } catch (error) {}
-
-        res.json(SEED_ADMIN_USERS);
+            const [fallback] = await db.execute('SELECT id, full_name, email, role, created_at FROM users ORDER BY created_at DESC');
+            return res.json(fallback || []);
+          } catch (e2) {}
+          res.json(SEED_ADMIN_USERS);
+        }
       });
 
       app.put('/api/admin/users/:id', async (req, res) => {

@@ -3,9 +3,9 @@ const API_BASE = `${API_BASE_URL}/api/admin`;
 
 export async function getAdminStats() {
   const defaultStats = {
-    totalUsers: 15,
-    totalNurseries: 1,
-    totalPlants: 12,
+    totalUsers: 0,
+    totalNurseries: 0,
+    totalPlants: 0,
     totalOrders: 0,
     totalRevenue: 0,
     pendingNurseries: 0
@@ -17,12 +17,12 @@ export async function getAdminStats() {
     const data = await response.json();
     if (!data || data.error) return defaultStats;
     return {
-      totalUsers: data.totalUsers || 15,
-      totalNurseries: data.totalNurseries || 1,
-      totalPlants: data.totalPlants || 12,
-      totalOrders: data.totalOrders || 0,
-      totalRevenue: data.totalRevenue || 0,
-      pendingNurseries: data.pendingNurseries || 0
+      totalUsers: data.totalUsers ?? 0,
+      totalNurseries: data.totalNurseries ?? 0,
+      totalPlants: data.totalPlants ?? 0,
+      totalOrders: data.totalOrders ?? 0,
+      totalRevenue: data.totalRevenue ?? 0,
+      pendingNurseries: data.pendingNurseries ?? 0
     };
   } catch (err) {
     console.error('Admin stats fetch error:', err);
