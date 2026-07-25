@@ -130,33 +130,26 @@
 }
 
 .lp-nav-center {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   gap: 24px;
   flex: 1;
 }
 
-.lp-nav-link {
-  background: none;
-  border: none;
-  color: var(--lp-foreground);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-
-.lp-nav-link:hover {
-  color: var(--lp-primary);
-  transform: translateY(-1px);
-}
-
 .lp-nav-actions {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .lp-nav-center {
+    display: flex;
+  }
+  .lp-nav-actions {
+    display: flex;
+  }
 }
 
 /* ─── SHARED BUTTONS — matches Landing.jsx ─── */
