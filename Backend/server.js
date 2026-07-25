@@ -1444,12 +1444,12 @@ const plantDetailsMap = require('./plantDetails');
 
       // --- Admin Dashboard Endpoints ---
       app.get('/api/admin/stats', async (req, res) => {
-        let totalUsers = SEED_ADMIN_USERS.length;
-        let totalNurseries = SEED_ADMIN_NURSERIES.length;
-        let totalPlants = MVP_PLANTS.length;
-        let totalOrders = 8;
-        let totalRevenue = 48500;
-        let pendingNurseries = 1;
+        let totalUsers = 0;
+        let totalNurseries = 0;
+        let totalPlants = 0;
+        let totalOrders = 0;
+        let totalRevenue = 0;
+        let pendingNurseries = 0;
 
         try {
           const [uCount] = await db.execute(`
@@ -1459,23 +1459,32 @@ const plantDetailsMap = require('./plantDetails');
               SELECT email FROM login_history WHERE email IS NOT NULL AND email != ''
             ) combined_emails
           `);
-          if (uCount[0]?.count > 0) totalUsers = uCount[0].count;
+          totalUsers = uCount[0]?.count || 0;
 
           const [nCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
-          if (nCount[0]?.count > 0) totalNurseries = nCount[0].count;
+          totalNurseries = nCount[0]?.count || 0;
 
           const [pCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
-          if (pCount[0]?.count > 0) totalPlants = pCount[0].count;
+          totalPlants = pCount[0]?.count || 0;
 
           const [oCount] = await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE request_type = 'buy'");
-          if (oCount[0]?.count > 0) totalOrders = oCount[0].count;
+          totalOrders = oCount[0]?.count || 0;
 
           const [rev] = await db.execute("SELECT SUM(total_amount) as total FROM payment_sessions WHERE status = 'completed'");
-          if (rev[0]?.total > 0) totalRevenue = rev[0].total;
+          totalRevenue = rev[0]?.total || 0;
 
           const [pending] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'User' OR role = 'pending'");
-          if (pending[0]?.count > 0) pendingNurseries = pending[0].count;
-        } catch (e) {}
+          pendingNurseries = pending[0]?.count || 0;
+
+          // If DB is completely empty (0 users/nurseries/plants), fall back to seed counts
+          if (totalUsers === 0) totalUsers = SEED_ADMIN_USERS.length;
+          if (totalNurseries === 0) totalNurseries = SEED_ADMIN_NURSERIES.length;
+          if (totalPlants === 0) totalPlants = MVP_PLANTS.length;
+        } catch (e) {
+          totalUsers = SEED_ADMIN_USERS.length;
+          totalNurseries = SEED_ADMIN_NURSERIES.length;
+          totalPlants = MVP_PLANTS.length;
+        }
 
         res.json({
           totalUsers,
@@ -1526,8 +1535,32 @@ const plantDetailsMap = require('./plantDetails');
       app.delete('/api/admin/users/:id', async (req, res) => {
         try {
           const { id } = req.params;
-          await db.execute('DELETE FROM users WHERE id = ?', [id]);
+          const userEmail = req.query.email || req.body?.email || null;
+
+          let targetEmail = userEmail;
+
+          // Lookup email if not supplied in request
+          if (!targetEmail) {
+            try {
+              const [u] = await db.execute('SELECT email FROM users WHERE id = ? OR id = ?', [id, parseInt(id) - 10000]);
+              if (u.length > 0 && u[0].email) {
+                targetEmail = u[0].email;
+              } else {
+                const [h] = await db.execute('SELECT email FROM login_history WHERE id = ? OR id = ?', [id, parseInt(id) - 10000]);
+                if (h.length > 0 && h[0].email) targetEmail = h[0].email;
+              }
+            } catch (e) {}
+          }
+
+          // Purge from users table
+          await db.execute('DELETE FROM users WHERE id = ? OR id = ? OR (email IS NOT NULL AND email = ?)', [id, parseInt(id) - 10000, targetEmail || '___none___']);
+
+          // Purge ALL records from login_history table matching email or ID
+          if (targetEmail) {
+            await db.execute('DELETE FROM login_history WHERE email = ?', [targetEmail]);
+          }
           await db.execute('DELETE FROM login_history WHERE id = ? OR id = ?', [id, parseInt(id) - 10000]);
+
           res.json({ success: true, message: 'User deleted successfully' });
         } catch (error) {
           console.error('[ADMIN] Delete user error:', error);

@@ -55,7 +55,7 @@ export default function AdminUsers() {
     // Update local state immediately
     setUsers(users.filter(u => u.id !== user.id));
     
-    await deleteAdminUser(user.id);
+    await deleteAdminUser(user.id, user.email);
     setMessage('User removed successfully');
     setTimeout(() => setMessage(''), 3000);
   };

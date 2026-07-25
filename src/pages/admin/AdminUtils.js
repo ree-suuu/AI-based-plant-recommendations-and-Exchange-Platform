@@ -56,9 +56,10 @@ export async function updateAdminUser(id, userData) {
   }
 }
 
-export async function deleteAdminUser(id) {
+export async function deleteAdminUser(id, email = '') {
   try {
-    const response = await fetch(`${API_BASE}/users/${id}`, {
+    const query = email ? `?email=${encodeURIComponent(email)}` : '';
+    const response = await fetch(`${API_BASE}/users/${id}${query}`, {
       method: 'DELETE',
     });
     return await response.json();
