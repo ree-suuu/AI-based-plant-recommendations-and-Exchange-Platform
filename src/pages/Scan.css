@@ -1,6 +1,12 @@
 .scan-container {
   max-width: 600px;
   margin: 0 auto;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 5rem; /* space for mobile bottom nav */
 }
 
 .text-center { text-align: center; }
@@ -81,6 +87,10 @@
   height: 100%;
   border-radius: 50%;
   background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   transition: transform 0.1s ease;
 }
 
@@ -114,6 +124,42 @@
   0% { top: 0; }
   50% { top: 100%; }
   100% { top: 0; }
+}
+
+/* Scan controls row */
+.scan-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.25rem;
+  width: 100%;
+}
+
+.scan-side-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.95);
+  border: 1.5px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  color: var(--primary);
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.scan-side-btn:hover {
+  background: #f0f7f0;
+  transform: scale(1.06);
+}
+
+.scan-side-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Form Styles */

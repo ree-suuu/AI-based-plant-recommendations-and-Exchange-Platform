@@ -3,7 +3,7 @@ import {
   Camera, MapPin, Search, Leaf, ArrowLeft, ArrowRight, Home, Loader2, CheckCircle, 
   ShoppingCart, RefreshCw, X, Info, Droplets, Sun, Sprout, 
   Maximize, Calendar, Scissors, Bug, Trophy, Globe, Thermometer, Wind,
-  Sparkles, Minus, Plus, Trash2, QrCode, Upload, FlipHorizontal2
+  Sparkles, Minus, Plus, Trash2, QrCode, Upload, SwitchCamera
 } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import careTipsData from './careTips.json';
@@ -560,11 +560,11 @@ export default function Scan() {
                   zIndex: 10,
                 }}
               >
-                <FlipHorizontal2
+                <SwitchCamera
                   size={22}
                   style={{
                     transition: 'transform 0.4s ease',
-                    transform: isFlipping ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                    transform: isFlipping ? 'rotate(180deg)' : 'rotate(0deg)'
                   }}
                 />
               </button>
@@ -586,34 +586,30 @@ export default function Scan() {
             onChange={handleFileUpload} 
           />
 
-          <div className="scan-controls" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', justifyContent: 'center', marginTop: '1rem' }}>
-            <button className="btn-capture" onClick={handleIdentify} disabled={isScanning || !stream}>
-              <div className="inner-circle"><Camera size={32} /></div>
-            </button>
-
+          {/* Controls — always visible, centered */}
+          <div className="scan-controls-row">
+            {/* Upload button */}
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()}
               disabled={isScanning}
-              style={{
-                background: 'rgba(255,255,255,0.9)',
-                border: '1px solid #ddd',
-                borderRadius: '50%',
-                width: '56px',
-                height: '56px',
-                display: 'flex',
-                alignItems: 'center',
-                justify: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                color: 'var(--primary)'
-              }}
+              className="scan-side-btn"
               title="Upload photo from device"
             >
-              <Upload size={24} />
+              <Upload size={22} />
             </button>
+
+            {/* Main capture button — centered green circle */}
+            <button className="btn-capture" onClick={handleIdentify} disabled={isScanning || !stream}>
+              <div className="inner-circle">
+                <Camera size={32} />
+              </div>
+            </button>
+
+            {/* Spacer to keep capture centered */}
+            <div style={{ width: '56px' }} />
           </div>
-          <p className="capture-label" style={{ marginTop: '0.5rem' }}>Tap camera to scan or upload photo</p>
+          <p className="capture-label">Tap to scan · Upload to identify</p>
         </div>
       )}
 
