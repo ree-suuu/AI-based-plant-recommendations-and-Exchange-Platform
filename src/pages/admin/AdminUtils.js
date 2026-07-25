@@ -1,16 +1,6 @@
 import { API_BASE_URL } from '../../apiConfig';
 const API_BASE = `${API_BASE_URL}/api/admin`;
 
-// Seed fallback data shown when backend is unreachable or returns all zeros
-const FALLBACK_STATS = {
-  totalUsers: 18,
-  totalNurseries: 5,
-  totalPlants: 47,
-  totalOrders: 0,
-  totalRevenue: 0,
-  pendingNurseries: 0
-};
-
 const FALLBACK_USERS = [
   { id: 1, full_name: 'Rishu Prajapati', email: 'rishu@leaflife.com', role: 'Admin', created_at: '2026-05-10T10:00:00Z' },
   { id: 2, full_name: 'Dikshya Sitaula', email: 'dikshya@leaflife.com', role: 'Admin', created_at: '2026-05-12T11:30:00Z' },
@@ -35,9 +25,14 @@ const FALLBACK_USERS = [
 export async function getAdminStats() {
   try {
     const response = await fetch(`${API_BASE}/stats`);
-    if (!response.ok) return FALLBACK_STATS;
+    if (!response.ok) {
+      throw new Error(`Admin stats request failed with status ${response.status}`);
+    }
+
     const data = await response.json();
-    if (!data || data.error) return FALLBACK_STATS;
+    if (!data || data.error) {
+      throw new Error(data?.error || 'Admin stats response was invalid');
+    }
 
     const result = {
       totalUsers: data.totalUsers ?? 0,
@@ -48,15 +43,10 @@ export async function getAdminStats() {
       pendingNurseries: data.pendingNurseries ?? 0
     };
 
-    // If ALL key counts are zero, backend likely errored — use fallback
-    if (result.totalUsers === 0 && result.totalNurseries === 0 && result.totalPlants === 0) {
-      return FALLBACK_STATS;
-    }
-
     return result;
   } catch (err) {
     console.error('Admin stats fetch error:', err);
-    return FALLBACK_STATS;
+    return null;
   }
 }
 

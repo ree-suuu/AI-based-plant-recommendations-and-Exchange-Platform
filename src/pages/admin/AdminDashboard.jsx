@@ -28,6 +28,7 @@ export default function AdminDashboard() {
     pendingNurseries: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
 
   useEffect(() => {
     if (!session) {
@@ -37,8 +38,13 @@ export default function AdminDashboard() {
     
     const fetchStats = async () => {
       setLoading(true);
+      setStatsError('');
       const data = await getAdminStats();
-      setStats(data);
+      if (data) {
+        setStats(data);
+      } else {
+        setStatsError('Unable to load live admin stats right now.');
+      }
       setLoading(false);
     };
 
@@ -57,7 +63,7 @@ export default function AdminDashboard() {
           <div className="stat-icon users"><Users size={24} /></div>
           <div className="stat-content">
             <span>Total Users</span>
-            <strong>{stats.totalUsers}</strong>
+            <strong>{loading ? '...' : (statsError ? '—' : stats.totalUsers)}</strong>
           </div>
         </div>
         
@@ -65,7 +71,7 @@ export default function AdminDashboard() {
           <div className="stat-icon nurseries"><Store size={24} /></div>
           <div className="stat-content">
             <span>Verified Nurseries</span>
-            <strong>{stats.totalNurseries}</strong>
+            <strong>{loading ? '...' : (statsError ? '—' : stats.totalNurseries)}</strong>
           </div>
         </div>
 
@@ -73,7 +79,7 @@ export default function AdminDashboard() {
           <div className="stat-icon plants"><Package size={24} /></div>
           <div className="stat-content">
             <span>Plant Listings</span>
-            <strong>{stats.totalPlants}</strong>
+            <strong>{loading ? '...' : (statsError ? '—' : stats.totalPlants)}</strong>
           </div>
         </div>
 
@@ -81,7 +87,7 @@ export default function AdminDashboard() {
           <div className="stat-icon orders"><ShoppingCart size={24} /></div>
           <div className="stat-content">
             <span>Total Orders</span>
-            <strong>{stats.totalOrders}</strong>
+            <strong>{loading ? '...' : (statsError ? '—' : stats.totalOrders)}</strong>
           </div>
         </div>
 
@@ -89,10 +95,19 @@ export default function AdminDashboard() {
           <div className="stat-icon revenue"><DollarSign size={24} /></div>
           <div className="stat-content">
             <span>Platform Revenue</span>
-            <strong>Rs. {(stats?.totalRevenue || 0).toLocaleString()}</strong>
+            <strong>{loading ? '...' : (statsError ? '—' : `Rs. ${(stats?.totalRevenue || 0).toLocaleString()}`)}</strong>
           </div>
         </div>
       </div>
+
+      {statsError && (
+        <div className="panel-card" style={{ marginBottom: '2rem', borderColor: '#fecaca', background: '#fff1f2' }}>
+          <strong style={{ color: '#9f1239' }}>{statsError}</strong>
+          <div style={{ color: '#be123c', marginTop: '0.35rem' }}>
+            Check the deployed API and database environment variables.
+          </div>
+        </div>
+      )}
 
       <div className="admin-content-split">
         <section className="panel-card activity-panel">

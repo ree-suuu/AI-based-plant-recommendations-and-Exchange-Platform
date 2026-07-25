@@ -1469,24 +1469,10 @@ const plantDetailsMap = require('./plantDetails');
           const [pending] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'pending'");
           const pendingNurseries = Number(pending[0]?.count) || 0;
 
-          // Use seed fallbacks ONLY when DB tables are empty (local dev / fresh install)
-          // This ensures deletions on deployed reflect real counts (they'll be > 0 unless everything is deleted)
-          if (totalUsers === 0) totalUsers = SEED_ADMIN_USERS.length;
-          if (totalNurseries === 0) totalNurseries = SEED_ADMIN_NURSERIES.length;
-          if (totalPlants === 0) totalPlants = MVP_PLANTS.length;
-
           res.json({ totalUsers, totalNurseries, totalPlants, totalOrders, totalRevenue, pendingNurseries });
         } catch (e) {
           console.error('[ADMIN STATS] DB error:', e.message);
-          // Full fallback when DB is completely unreachable
-          res.json({
-            totalUsers: SEED_ADMIN_USERS.length,
-            totalNurseries: SEED_ADMIN_NURSERIES.length,
-            totalPlants: MVP_PLANTS.length,
-            totalOrders: 0,
-            totalRevenue: 0,
-            pendingNurseries: 0
-          });
+          res.status(500).json({ error: 'Failed to fetch admin stats from database' });
         }
       });
 
