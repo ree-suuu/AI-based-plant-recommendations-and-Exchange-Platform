@@ -154,32 +154,48 @@ export async function loginNurseryUser(email, password) {
 export async function getNurseryProfile(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/nursery/profile/${userId}`);
-    return await response.json();
+    if (!response.ok) return {};
+    const data = await response.json();
+    return (data && !data.error) ? data : {};
   } catch (err) {
     return {};
   }
 }
 
 export async function getNurseryStats(userId) {
+  const defaultStats = {
+    totalProducts: 0,
+    totalOrders: 0,
+    totalPlantsSold: 0,
+    totalRevenue: 0,
+    lowStock: 0,
+    recentOrders: [],
+    trending: [],
+  };
+
   try {
     const response = await fetch(`${API_BASE_URL}/api/nursery/stats/${userId}`);
-    return await response.json();
-  } catch (err) {
+    if (!response.ok) return defaultStats;
+    const data = await response.json();
+    if (!data || data.error) return defaultStats;
     return {
-      totalProducts: 0,
-      totalOrders: 0,
-      totalPlantsSold: 0,
-      totalRevenue: 0,
-      lowStock: 0,
-      recentOrders: [],
-      trending: [],
+      totalProducts: data.totalProducts || 0,
+      totalOrders: data.totalOrders || 0,
+      totalPlantsSold: data.totalPlantsSold || 0,
+      totalRevenue: data.totalRevenue || 0,
+      lowStock: data.lowStock || 0,
+      recentOrders: Array.isArray(data.recentOrders) ? data.recentOrders : [],
+      trending: Array.isArray(data.trending) ? data.trending : [],
     };
+  } catch (err) {
+    return defaultStats;
   }
 }
 
 export async function getNurseryProducts(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/nursery/plants/${userId}`);
+    if (!response.ok) return [];
     const data = await response.json();
     if (Array.isArray(data)) {
       return data.map(p => ({
@@ -202,7 +218,9 @@ export function findNurseryUser(email, password) {
 export async function getNurseryOrders(userId) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/nursery/orders/${userId}`);
-    return await response.json();
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
   } catch (err) {
     return [];
   }

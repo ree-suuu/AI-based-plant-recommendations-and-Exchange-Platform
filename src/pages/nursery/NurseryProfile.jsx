@@ -17,15 +17,18 @@ export default function NurseryProfile() {
       navigate('/nursery/signin');
       return;
     }
-    const storedProfile = getNurseryProfile(userId);
-    setProfile(storedProfile);
-    setForm({
-      nurseryName: storedProfile.nurseryName || '',
-      ownerName: storedProfile.ownerName || '',
-      email: storedProfile.email || '',
-      phone: storedProfile.phone || '',
-      address: storedProfile.address || '',
-    });
+    const fetchProfile = async () => {
+      const storedProfile = await getNurseryProfile(userId);
+      setProfile(storedProfile);
+      setForm({
+        nurseryName: storedProfile.nurseryName || storedProfile.nursery_name || '',
+        ownerName: storedProfile.ownerName || storedProfile.owner_name || '',
+        email: storedProfile.email || '',
+        phone: storedProfile.phone || '',
+        address: storedProfile.address || '',
+      });
+    };
+    fetchProfile();
   }, [navigate, userId]);
 
   const handleChange = (field) => (event) => {
