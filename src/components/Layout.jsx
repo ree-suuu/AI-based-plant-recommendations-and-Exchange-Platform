@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Store, Camera, Trophy, LayoutDashboard, MapPin, LogOut, Settings, Users, LogIn, MoreHorizontal, X } from 'lucide-react';
+import { Store, Camera, Trophy, LayoutDashboard, MapPin, LogOut, Settings, Users, LogIn, MoreHorizontal, X, User, ChevronRight } from 'lucide-react';
 import './Layout.css';
 import logo from "../assets/Leaf and Life logo.png";
 import AuthModal from './AuthModal';
@@ -11,6 +11,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [authOpen, setAuthOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileSheetOpen, setProfileSheetOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('leafLifeAuthenticated') === 'true';
@@ -28,8 +29,8 @@ export default function Layout() {
   const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
 
-  // Close More sheet on route change
-  useEffect(() => { setMoreOpen(false); }, [location.pathname]);
+  // Close More sheet and Profile sheet on route change
+  useEffect(() => { setMoreOpen(false); setProfileSheetOpen(false); }, [location.pathname]);
 
 
   const openAuthModal = () => setAuthOpen(true);
@@ -253,6 +254,65 @@ export default function Layout() {
                 </div>
                 <span>Rewards</span>
               </NavLink>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MOBILE: Floating Profile Avatar ─────────────────────── */}
+      <button
+        className="mobile-profile-fab"
+        onClick={() => setProfileSheetOpen(prev => !prev)}
+        aria-label="Profile"
+      >
+        {userAvatar
+          ? <img src={userAvatar} alt={userName} className="mobile-fab-avatar" />
+          : <div className="mobile-fab-initials">{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</div>
+        }
+      </button>
+
+      {/* ── MOBILE: Profile Sheet ─────────────────────────────────── */}
+      {profileSheetOpen && (
+        <div className="more-overlay" onClick={() => setProfileSheetOpen(false)}>
+          <div className="more-sheet profile-sheet" onClick={e => e.stopPropagation()}>
+            <div className="more-sheet-handle" />
+
+            {/* Header */}
+            <div className="profile-sheet-header">
+              <div className="profile-sheet-avatar">
+                {userAvatar
+                  ? <img src={userAvatar} alt={userName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  : <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2d6a4f' }}>{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</span>
+                }
+              </div>
+              <div>
+                <p className="profile-sheet-name">{isAuthenticated ? userName : 'Guest User'}</p>
+                <p className="profile-sheet-role">{isAuthenticated ? 'Plant Parent 🌿' : 'Guest Mode'}</p>
+              </div>
+              <button className="more-close-btn" style={{ marginLeft: 'auto' }} onClick={() => setProfileSheetOpen(false)}><X size={20} /></button>
+            </div>
+
+            {/* Actions */}
+            <div className="profile-sheet-actions">
+              {isAuthenticated ? (
+                <>
+                  <button className="profile-sheet-row" onClick={() => { setProfileSheetOpen(false); openSettingsModal(); }}>
+                    <div className="profile-row-icon"><Settings size={18} /></div>
+                    <span>Edit Profile &amp; Settings</span>
+                    <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.4 }} />
+                  </button>
+                  <button className="profile-sheet-row danger" onClick={() => { setProfileSheetOpen(false); handleSwitchAccount(); }}>
+                    <div className="profile-row-icon danger"><LogOut size={18} /></div>
+                    <span>Log Out</span>
+                  </button>
+                </>
+              ) : (
+                <button className="profile-sheet-row" onClick={() => { setProfileSheetOpen(false); openAuthModal(); }}>
+                  <div className="profile-row-icon"><LogIn size={18} /></div>
+                  <span>Log In / Sign Up</span>
+                  <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.4 }} />
+                </button>
+              )}
             </div>
           </div>
         </div>
