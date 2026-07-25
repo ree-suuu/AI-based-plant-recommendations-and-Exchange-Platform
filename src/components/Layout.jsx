@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
-import { Store, Camera, Trophy, LayoutDashboard, MapPin, LogOut, Settings, Users, LogIn } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Store, Camera, Trophy, LayoutDashboard, MapPin, LogOut, Settings, Users, LogIn, MoreHorizontal, X } from 'lucide-react';
 import './Layout.css';
 import logo from "../assets/Leaf and Life logo.png";
 import AuthModal from './AuthModal';
@@ -25,6 +25,11 @@ export default function Layout() {
   });
   const [userAvatar, setUserAvatar] = useState(null);
   const [commNotifCount, setCommNotifCount] = useState(0);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const location = useLocation();
+
+  // Close More sheet on route change
+  useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
 
   const openAuthModal = () => setAuthOpen(true);
@@ -221,6 +226,38 @@ export default function Layout() {
         <Outlet context={{ openAuthModal, isAuthenticated, userName, userId }} />
       </main>
 
+      {/* More Sheet Overlay */}
+      {moreOpen && (
+        <div className="more-overlay" onClick={() => setMoreOpen(false)}>
+          <div className="more-sheet" onClick={e => e.stopPropagation()}>
+            <div className="more-sheet-handle" />
+            <div className="more-sheet-header">
+              <span>More</span>
+              <button className="more-close-btn" onClick={() => setMoreOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="more-sheet-items">
+              <NavLink to="/community" className="more-sheet-item" style={{ position: 'relative' }}>
+                <div className="more-sheet-icon">
+                  <Users size={22} />
+                  {commNotifCount > 0 && (
+                    <span className="comm-badge-more">{commNotifCount}</span>
+                  )}
+                </div>
+                <span>Community</span>
+              </NavLink>
+              <NavLink to="/rewards" className="more-sheet-item">
+                <div className="more-sheet-icon">
+                  <Trophy size={22} />
+                </div>
+                <span>Rewards</span>
+              </NavLink>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom Navigation for Mobile */}
       <nav className="bottom-nav">
         <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
@@ -237,21 +274,17 @@ export default function Layout() {
           </div>
           <span>Scan</span>
         </NavLink>
-        <NavLink to="/community" className={({isActive}) => isActive ? "nav-item active" : "nav-item"} style={{ position: 'relative' }}>
-          <Users size={22} />
-          <span>Community</span>
-          {commNotifCount > 0 && (
-            <span className="comm-badge-mobile">{commNotifCount}</span>
-          )}
-        </NavLink>
-        <NavLink to="/rewards" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <Trophy size={22} />
-          <span>Rewards</span>
-        </NavLink>
         <NavLink to="/marketplace" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
           <Store size={22} />
           <span>Market</span>
         </NavLink>
+        <button
+          className={`nav-item more-btn${moreOpen ? ' active' : ''}`}
+          onClick={() => setMoreOpen(prev => !prev)}
+        >
+          <MoreHorizontal size={22} />
+          <span>More</span>
+        </button>
       </nav>
     </div>
   );
