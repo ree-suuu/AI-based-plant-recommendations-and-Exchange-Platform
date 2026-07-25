@@ -330,4 +330,39 @@ const PLANT_DETAILS = {
   }
 };
 
+export function getPlantDetailsByNameOrId(plantOrName) {
+  if (!plantOrName) return {};
+
+  const p = typeof plantOrName === 'object' ? plantOrName : {};
+  const searchName = typeof plantOrName === 'string'
+    ? plantOrName
+    : (p.name || p.english_name || p.englishName || '');
+
+  const cleanSearch = searchName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+
+  // Find match in PLANT_DETAILS by plant name or englishName
+  let detailMatch = Object.values(PLANT_DETAILS).find(d => {
+    const dName = (d.name || '').toLowerCase();
+    const dEng = (d.englishName || '').toLowerCase();
+    return dName === cleanSearch || dEng === cleanSearch;
+  });
+
+  if (!detailMatch && cleanSearch) {
+    detailMatch = Object.values(PLANT_DETAILS).find(d => {
+      const dName = (d.name || '').toLowerCase();
+      const dEng = (d.englishName || '').toLowerCase();
+      return (dName && (dName.includes(cleanSearch) || cleanSearch.includes(dName))) ||
+             (dEng && (dEng.includes(cleanSearch) || cleanSearch.includes(dEng)));
+    });
+  }
+
+  return {
+    name: p.name || detailMatch?.name || searchName,
+    scientificName: p.scientific_name || p.scientificName || detailMatch?.scientificName || '',
+    englishName: p.english_name || p.englishName || detailMatch?.englishName || p.name || searchName,
+    nepaliName: p.nepali_name || p.nepaliName || detailMatch?.nepaliName || '',
+    description: p.description || detailMatch?.description || ''
+  };
+}
+
 export default PLANT_DETAILS;

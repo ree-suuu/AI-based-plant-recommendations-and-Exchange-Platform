@@ -6,7 +6,7 @@ import {
   Sparkles, Home, Maximize, Calendar, Scissors, Bug, Trophy, HelpCircle, 
   CloudRain, Globe, Sprout, ArrowLeftRight
 } from 'lucide-react';
-import PLANT_DETAILS from './plantData';
+import PLANT_DETAILS, { getPlantDetailsByNameOrId } from './plantData';
 import CARE_TIPS from './careTips.json';
 import './PlantDetail.css';
 import { API_BASE_URL } from '../apiConfig';
@@ -440,7 +440,7 @@ export default function PlantDetail() {
     );
   }
 
-  const detail = PLANT_DETAILS[plant?.id] || {};
+  const detail = getPlantDetailsByNameOrId(plant);
   const cartCount = cart.reduce((sum, item) => sum + (item.quantity || 0), 0);
   
   const isOwned = plant?.buyer_id === parseInt(currentUserId);
@@ -513,7 +513,9 @@ export default function PlantDetail() {
         <div className="plant-detail-card">
           <div className="detail-header-new">
             <h1 className="detail-title-new">{plant.name}</h1>
-            <p className="scientific-name-new"><i>({plant.scientific_name || detail.scientificName})</i></p>
+            {detail.scientificName && (
+              <p className="scientific-name-new"><i>({detail.scientificName})</i></p>
+            )}
           </div>
 
           <div className="carousel-section">
@@ -524,7 +526,7 @@ export default function PlantDetail() {
                 className="carousel-img" 
                 onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1416879598555-259160a2bece?q=80&w=400'; }} 
               />
-              <div className="carousel-badge">{plant.type}</div>
+              <div className="carousel-badge">{plant.type || 'Plant'}</div>
               {carouselImages.length > 1 && (
                 <>
                   <button className="carousel-arrow left" onClick={handlePrevSlide}><ArrowLeft size={20} /></button>
@@ -539,15 +541,15 @@ export default function PlantDetail() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scientific Name:</span>
-                <span style={{ fontSize: '1.1rem', color: '#333', fontStyle: 'italic' }}>{detail.scientificName || plant.scientific_name}</span>
+                <span style={{ fontSize: '1.1rem', color: '#333', fontStyle: 'italic' }}>{detail.scientificName || 'N/A'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>English Name:</span>
-                <span style={{ fontSize: '1.1rem', color: '#333', fontWeight: '600' }}>{detail.englishName || plant.english_name || plant.name}</span>
+                <span style={{ fontSize: '1.1rem', color: '#333', fontWeight: '600' }}>{detail.englishName || plant.name || 'N/A'}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nepali Name:</span>
-                <span style={{ fontSize: '1.1rem', color: '#333', fontWeight: '600' }}>{detail.nepaliName || plant.nepali_name}</span>
+                <span style={{ fontSize: '1.1rem', color: '#333', fontWeight: '600' }}>{detail.nepaliName || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -557,7 +559,7 @@ export default function PlantDetail() {
               <Leaf size={20} className="text-primary" /> About This Plant
             </h3>
             <p style={{ lineHeight: '1.8', color: '#4a4a4a', fontSize: '1.05rem', textAlign: 'justify' }}>
-              {detail.description || plant.description}
+              {detail.description || plant.description || 'No description available for this plant.'}
             </p>
           </div>
 
