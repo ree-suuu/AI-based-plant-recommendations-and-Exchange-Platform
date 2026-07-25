@@ -1,24 +1,33 @@
 import { useEffect, useState } from 'react';
-import { getAdminPlants } from './AdminUtils';
+import { getAdminPlants, deleteAdminPlant } from './AdminUtils';
 import './AdminModule.css';
 import { Package, Search, Tag, MapPin, Eye, Trash2 } from 'lucide-react';
-
 import { API_BASE_URL } from '../../apiConfig';
 
 export default function AdminProducts() {
   const [plants, setPlants] = useState([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState('');
+
+  const loadPlants = async () => {
+    setLoading(true);
+    const data = await getAdminPlants();
+    setPlants(data);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchPlants = async () => {
-      setLoading(true);
-      const data = await getAdminPlants();
-      setPlants(data);
-      setLoading(false);
-    };
-    fetchPlants();
+    loadPlants();
   }, []);
+
+  const handleDeletePlant = async (plant) => {
+    if (!window.confirm(`Are you sure you want to remove listing "${plant.name}"?`)) return;
+    setPlants(plants.filter(p => p.id !== plant.id));
+    await deleteAdminPlant(plant.id);
+    setMessage(`Plant listing "${plant.name}" removed successfully`);
+    setTimeout(() => setMessage(''), 3000);
+  };
 
   const safePlants = Array.isArray(plants) ? plants : [];
   const filteredPlants = safePlants.filter(p => 
@@ -35,6 +44,12 @@ export default function AdminProducts() {
           <p className="module-copy">Global view of all plant listings across nurseries and community sellers.</p>
         </div>
       </div>
+
+      {message && (
+        <div style={{ background: '#E8F5E9', color: '#2E7D32', padding: '12px 18px', borderRadius: '8px', margin: '16px 0 0 0', fontWeight: '600' }}>
+          {message}
+        </div>
+      )}
 
       <div className="filter-row mt-6">
         <div className="search-box">
@@ -75,6 +90,7 @@ export default function AdminProducts() {
                           src={plant.image && plant.image.startsWith('http') ? plant.image : `${API_BASE_URL}${plant.image}`} 
                           alt={plant.name} 
                           className="plant-thumb"
+                          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1416879598555-259160a2bece?q=80&w=400'; }}
                         />
                         <div className="plant-meta">
                           <span className="font-semibold">{plant.name}</span>
@@ -97,8 +113,7 @@ export default function AdminProducts() {
                     </td>
                     <td>
                       <div className="action-btns">
-                        <button className="icon-btn" title="View Details"><Eye size={16} /></button>
-                        <button className="icon-btn text-danger" title="Remove Listing"><Trash2 size={16} /></button>
+                        <button className="icon-btn text-danger" onClick={() => handleDeletePlant(plant)} title="Remove Listing"><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
