@@ -224,29 +224,33 @@ export default function Layout() {
       {/* Bottom Navigation for Mobile */}
       <nav className="bottom-nav">
         <NavLink to="/dashboard" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <LayoutDashboard size={24} />
+          <LayoutDashboard size={22} />
           <span>Dashboard</span>
         </NavLink>
         <NavLink to="/recommendation" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <MapPin size={24} />
+          <MapPin size={22} />
           <span>Smart Rec</span>
         </NavLink>
         <NavLink to="/scan" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
           <div className="scan-btn">
-            <Camera size={28} />
+            <Camera size={26} />
           </div>
-          <span>Smart Scan</span>
+          <span>Scan</span>
         </NavLink>
         <NavLink to="/community" className={({isActive}) => isActive ? "nav-item active" : "nav-item"} style={{ position: 'relative' }}>
-          <Users size={24} />
+          <Users size={22} />
           <span>Community</span>
           {commNotifCount > 0 && (
             <span className="comm-badge-mobile">{commNotifCount}</span>
           )}
         </NavLink>
         <NavLink to="/rewards" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <Trophy size={24} />
+          <Trophy size={22} />
           <span>Rewards</span>
+        </NavLink>
+        <NavLink to="/marketplace" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+          <Store size={22} />
+          <span>Market</span>
         </NavLink>
       </nav>
     </div>
