@@ -259,17 +259,19 @@ export default function Layout() {
         </div>
       )}
 
-      {/* ── MOBILE: Floating Profile Avatar ─────────────────────── */}
-      <button
-        className="mobile-profile-fab"
-        onClick={() => setProfileSheetOpen(prev => !prev)}
-        aria-label="Profile"
-      >
-        {userAvatar
-          ? <img src={userAvatar} alt={userName} className="mobile-fab-avatar" />
-          : <div className="mobile-fab-initials">{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</div>
-        }
-      </button>
+      {/* ── MOBILE: Sticky Top Bar ──────────────────────────────── */}
+      <div className="mobile-topbar">
+        <button
+          className="mobile-profile-fab"
+          onClick={() => setProfileSheetOpen(prev => !prev)}
+          aria-label="Profile"
+        >
+          {userAvatar
+            ? <img src={userAvatar} alt={userName} className="mobile-fab-avatar" />
+            : <div className="mobile-fab-initials">{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</div>
+          }
+        </button>
+      </div>
 
       {/* ── MOBILE: Profile Sheet ─────────────────────────────────── */}
       {profileSheetOpen && (
