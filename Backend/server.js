@@ -1445,14 +1445,9 @@ const plantDetailsMap = require('./plantDetails');
       // --- Admin Dashboard Endpoints ---
       app.get('/api/admin/stats', async (req, res) => {
         try {
-          // Count real users: from users table + unique emails only in login_history
+          // Count users only from the users table
           const [usersCount] = await db.execute('SELECT COUNT(*) as count FROM users');
-          const [historyCount] = await db.execute(`
-            SELECT COUNT(DISTINCT email) as count FROM login_history 
-            WHERE email IS NOT NULL AND email != ''
-              AND email NOT IN (SELECT email FROM users WHERE email IS NOT NULL AND email != '')
-          `);
-          let totalUsers = (Number(usersCount[0]?.count) || 0) + (Number(historyCount[0]?.count) || 0);
+          const totalUsers = Number(usersCount[0]?.count) || 0;
 
           const [nCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
           let totalNurseries = Number(nCount[0]?.count) || 0;
