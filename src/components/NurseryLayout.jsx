@@ -18,7 +18,7 @@ export default function NurseryLayout() {
 
   const handleSignOut = () => {
     clearNurserySession();
-    navigate('/nursery/signin');
+    navigate('/');
   };
 
   return (
