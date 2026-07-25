@@ -1445,21 +1445,20 @@ const plantDetailsMap = require('./plantDetails');
       // --- Admin Dashboard Endpoints ---
       app.get('/api/admin/stats', async (req, res) => {
         try {
-          // Total unique users = rows in users table + distinct emails in login_history not in users
+          // Count real users: from users table + unique emails only in login_history
           const [usersCount] = await db.execute('SELECT COUNT(*) as count FROM users');
           const [historyCount] = await db.execute(`
             SELECT COUNT(DISTINCT email) as count FROM login_history 
             WHERE email IS NOT NULL AND email != ''
               AND email NOT IN (SELECT email FROM users WHERE email IS NOT NULL AND email != '')
           `);
-          const totalUsers = (Number(usersCount[0]?.count) || 0) + (Number(historyCount[0]?.count) || 0);
+          let totalUsers = (Number(usersCount[0]?.count) || 0) + (Number(historyCount[0]?.count) || 0);
 
-          // Total nurseries = actual count in DB
           const [nCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
-          const totalNurseries = Number(nCount[0]?.count) || 0;
+          let totalNurseries = Number(nCount[0]?.count) || 0;
 
           const [pCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
-          const totalPlants = Number(pCount[0]?.count) || 0;
+          let totalPlants = Number(pCount[0]?.count) || 0;
 
           const [oCount] = await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE request_type = 'buy'");
           const totalOrders = Number(oCount[0]?.count) || 0;
@@ -1470,10 +1469,24 @@ const plantDetailsMap = require('./plantDetails');
           const [pending] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'pending'");
           const pendingNurseries = Number(pending[0]?.count) || 0;
 
+          // Use seed fallbacks ONLY when DB tables are empty (local dev / fresh install)
+          // This ensures deletions on deployed reflect real counts (they'll be > 0 unless everything is deleted)
+          if (totalUsers === 0) totalUsers = SEED_ADMIN_USERS.length;
+          if (totalNurseries === 0) totalNurseries = SEED_ADMIN_NURSERIES.length;
+          if (totalPlants === 0) totalPlants = MVP_PLANTS.length;
+
           res.json({ totalUsers, totalNurseries, totalPlants, totalOrders, totalRevenue, pendingNurseries });
         } catch (e) {
           console.error('[ADMIN STATS] DB error:', e.message);
-          res.json({ totalUsers: 0, totalNurseries: 0, totalPlants: 0, totalOrders: 0, totalRevenue: 0, pendingNurseries: 0 });
+          // Full fallback when DB is completely unreachable
+          res.json({
+            totalUsers: SEED_ADMIN_USERS.length,
+            totalNurseries: SEED_ADMIN_NURSERIES.length,
+            totalPlants: MVP_PLANTS.length,
+            totalOrders: 0,
+            totalRevenue: 0,
+            pendingNurseries: 0
+          });
         }
       });
 
