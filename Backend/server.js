@@ -217,7 +217,7 @@ const plantDetailsMap = require('./plantDetails');
 
           // Seed default demo nursery if nurseries table is empty or missing nursery-1
           try {
-            const [demoCheck] = await db.execute('SELECT id FROM nurseries WHERE external_id = "nursery-1" LIMIT 1');
+            const [demoCheck] = await db.execute("SELECT id FROM nurseries WHERE external_id = 'nursery-1' LIMIT 1");
             if (demoCheck.length === 0) {
               await db.execute(
                 'INSERT INTO nurseries (external_id, nursery_name, owner_name, email, phone, address, password) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -804,7 +804,7 @@ const plantDetailsMap = require('./plantDetails');
           
           const [productRows] = await db.execute('SELECT COUNT(*) as count FROM plants WHERE nursery_external_id = ?', [externalId]);
           const [orderRows] = nurseryDbId 
-            ? await db.execute('SELECT COUNT(*) as count FROM trade_requests WHERE receiver_id = ? AND request_type = "buy"', [nurseryDbId])
+            ? await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE receiver_id = ? AND request_type = 'buy'", [nurseryDbId])
             : [[{ count: 0 }]];
 
           res.json({
@@ -1423,7 +1423,7 @@ const plantDetailsMap = require('./plantDetails');
 
           const [nurseryCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
           const [plantCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
-          const [orderCount] = await db.execute('SELECT COUNT(*) as count FROM trade_requests WHERE request_type = "buy"');
+          const [orderCount] = await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE request_type = 'buy'");
           
           let totalRevenue = 0;
           try {
@@ -1431,7 +1431,7 @@ const plantDetailsMap = require('./plantDetails');
             totalRevenue = revenue[0]?.total || 0;
           } catch (e) {}
 
-          const [pendingNurseries] = await db.execute('SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = "User" OR role = "pending"');
+          const [pendingNurseries] = await db.execute("SELECT COUNT(*) as count FROM nurseries WHERE role IS NULL OR role = 'User' OR role = 'pending'");
 
           res.json({
             totalUsers: totalUsers || 15, // Provide active count
@@ -1515,7 +1515,7 @@ const plantDetailsMap = require('./plantDetails');
       app.put('/api/admin/nurseries/:id/approve', async (req, res) => {
         try {
           const { id } = req.params;
-          await db.execute('UPDATE nurseries SET role = "Verified" WHERE id = ? OR external_id = ?', [id, id]);
+          await db.execute("UPDATE nurseries SET role = 'Verified' WHERE id = ? OR external_id = ?", [id, id]);
           res.json({ success: true, message: 'Nursery verified' });
         } catch (error) {
           console.error('[ADMIN] Approve nursery error:', error);
