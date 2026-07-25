@@ -367,6 +367,63 @@ body {
   color: var(--text-main);
 }
 
+/* ── Profile card inside More sheet ─────────────────────── */
+.more-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1rem 0 0.85rem;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 0.5rem;
+}
+
+.more-profile-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b7e4c7, #52b788);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid #d8f3dc;
+}
+
+.more-profile-initial {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #1b4332;
+}
+
+.more-profile-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.more-profile-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main, #111827);
+  line-height: 1.2;
+}
+
+.more-profile-role {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: #40916c;
+  font-weight: 500;
+}
+
+.more-profile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 0.75rem;
+  padding-bottom: 0.25rem;
+}
+
 .more-close-btn {
   background: #f5f5f5;
   border: none;

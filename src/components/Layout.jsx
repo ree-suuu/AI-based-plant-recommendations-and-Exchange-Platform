@@ -227,17 +227,30 @@ export default function Layout() {
         <Outlet context={{ openAuthModal, isAuthenticated, userName, userId }} />
       </main>
 
-      {/* More Sheet Overlay */}
+      {/* More Sheet Overlay — includes Profile section */}
       {moreOpen && (
         <div className="more-overlay" onClick={() => setMoreOpen(false)}>
           <div className="more-sheet" onClick={e => e.stopPropagation()}>
             <div className="more-sheet-handle" />
-            <div className="more-sheet-header">
-              <span>More</span>
-              <button className="more-close-btn" onClick={() => setMoreOpen(false)}>
+
+            {/* Profile card at top of More sheet */}
+            <div className="more-profile-card">
+              <div className="more-profile-avatar">
+                {userAvatar
+                  ? <img src={userAvatar} alt={userName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                  : <span className="more-profile-initial">{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</span>
+                }
+              </div>
+              <div className="more-profile-info">
+                <p className="more-profile-name">{isAuthenticated ? userName : 'Guest User'}</p>
+                <p className="more-profile-role">{isAuthenticated ? 'Plant Parent 🌿' : 'Guest Mode'}</p>
+              </div>
+              <button className="more-close-btn" style={{ marginLeft: 'auto' }} onClick={() => setMoreOpen(false)}>
                 <X size={20} />
               </button>
             </div>
+
+            {/* Nav grid */}
             <div className="more-sheet-items">
               <NavLink to="/community" className="more-sheet-item" style={{ position: 'relative' }}>
                 <div className="more-sheet-icon">
@@ -249,67 +262,27 @@ export default function Layout() {
                 <span>Community</span>
               </NavLink>
               <NavLink to="/rewards" className="more-sheet-item">
-                <div className="more-sheet-icon">
-                  <Trophy size={22} />
-                </div>
+                <div className="more-sheet-icon"><Trophy size={22} /></div>
                 <span>Rewards</span>
               </NavLink>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ── MOBILE: Sticky Top Bar ──────────────────────────────── */}
-      <div className="mobile-topbar">
-        <button
-          className="mobile-profile-fab"
-          onClick={() => setProfileSheetOpen(prev => !prev)}
-          aria-label="Profile"
-        >
-          {userAvatar
-            ? <img src={userAvatar} alt={userName} className="mobile-fab-avatar" />
-            : <div className="mobile-fab-initials">{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</div>
-          }
-        </button>
-      </div>
-
-      {/* ── MOBILE: Profile Sheet ─────────────────────────────────── */}
-      {profileSheetOpen && (
-        <div className="more-overlay" onClick={() => setProfileSheetOpen(false)}>
-          <div className="more-sheet profile-sheet" onClick={e => e.stopPropagation()}>
-            <div className="more-sheet-handle" />
-
-            {/* Header */}
-            <div className="profile-sheet-header">
-              <div className="profile-sheet-avatar">
-                {userAvatar
-                  ? <img src={userAvatar} alt={userName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                  : <span style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2d6a4f' }}>{(isAuthenticated ? userName : 'G')[0].toUpperCase()}</span>
-                }
-              </div>
-              <div>
-                <p className="profile-sheet-name">{isAuthenticated ? userName : 'Guest User'}</p>
-                <p className="profile-sheet-role">{isAuthenticated ? 'Plant Parent 🌿' : 'Guest Mode'}</p>
-              </div>
-              <button className="more-close-btn" style={{ marginLeft: 'auto' }} onClick={() => setProfileSheetOpen(false)}><X size={20} /></button>
-            </div>
-
-            {/* Actions */}
-            <div className="profile-sheet-actions">
+            {/* Profile actions */}
+            <div className="more-profile-actions">
               {isAuthenticated ? (
                 <>
-                  <button className="profile-sheet-row" onClick={() => { setProfileSheetOpen(false); openSettingsModal(); }}>
+                  <button className="profile-sheet-row" onClick={() => { setMoreOpen(false); openSettingsModal(); }}>
                     <div className="profile-row-icon"><Settings size={18} /></div>
                     <span>Edit Profile &amp; Settings</span>
                     <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.4 }} />
                   </button>
-                  <button className="profile-sheet-row danger" onClick={() => { setProfileSheetOpen(false); handleSwitchAccount(); }}>
+                  <button className="profile-sheet-row danger" onClick={() => { setMoreOpen(false); handleSwitchAccount(); }}>
                     <div className="profile-row-icon danger"><LogOut size={18} /></div>
                     <span>Log Out</span>
                   </button>
                 </>
               ) : (
-                <button className="profile-sheet-row" onClick={() => { setProfileSheetOpen(false); openAuthModal(); }}>
+                <button className="profile-sheet-row" onClick={() => { setMoreOpen(false); openAuthModal(); }}>
                   <div className="profile-row-icon"><LogIn size={18} /></div>
                   <span>Log In / Sign Up</span>
                   <ChevronRight size={16} style={{ marginLeft: 'auto', opacity: 0.4 }} />
