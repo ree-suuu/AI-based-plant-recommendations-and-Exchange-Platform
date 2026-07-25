@@ -227,15 +227,15 @@ export default function Layout() {
           <LayoutDashboard size={24} />
           <span>Dashboard</span>
         </NavLink>
+        <NavLink to="/recommendation" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
+          <MapPin size={24} />
+          <span>Smart Rec</span>
+        </NavLink>
         <NavLink to="/scan" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
           <div className="scan-btn">
             <Camera size={28} />
           </div>
           <span>Smart Scan</span>
-        </NavLink>
-        <NavLink to="/recommendation" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <MapPin size={24} />
-          <span>Recommend</span>
         </NavLink>
         <NavLink to="/community" className={({isActive}) => isActive ? "nav-item active" : "nav-item"} style={{ position: 'relative' }}>
           <Users size={24} />
@@ -243,10 +243,6 @@ export default function Layout() {
           {commNotifCount > 0 && (
             <span className="comm-badge-mobile">{commNotifCount}</span>
           )}
-        </NavLink>
-        <NavLink to="/marketplace" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
-          <Store size={24} />
-          <span>Market</span>
         </NavLink>
         <NavLink to="/rewards" className={({isActive}) => isActive ? "nav-item active" : "nav-item"}>
           <Trophy size={24} />
