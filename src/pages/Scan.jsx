@@ -3,7 +3,7 @@ import {
   Camera, MapPin, Search, Leaf, ArrowLeft, ArrowRight, Home, Loader2, CheckCircle, 
   ShoppingCart, RefreshCw, X, Info, Droplets, Sun, Sprout, 
   Maximize, Calendar, Scissors, Bug, Trophy, Globe, Thermometer, Wind,
-  Sparkles, Minus, Plus, Trash2, QrCode, Upload
+  Sparkles, Minus, Plus, Trash2, QrCode, Upload, FlipHorizontal2
 } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import careTipsData from './careTips.json';
@@ -73,6 +73,8 @@ export default function Scan() {
   const [identification, setIdentification] = useState(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [cameraError, setCameraError] = useState('');
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment'=back, 'user'=front
+  const [isFlipping, setIsFlipping] = useState(false);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -229,13 +231,13 @@ export default function Scan() {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
-  const startCamera = async () => {
+  const startCamera = async (facing = facingMode) => {
     setCameraError('');
     try {
       let mediaStream;
       try {
         mediaStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: { ideal: 'environment' } } 
+          video: { facingMode: { ideal: facing } } 
         });
       } catch (err1) {
         // Fallback for laptop/desktop webcams
@@ -246,6 +248,20 @@ export default function Scan() {
       console.error("Error accessing camera:", err);
       setCameraError('Camera access unavailable. Grant permission or upload a photo below.');
     }
+  };
+
+  const flipCamera = async () => {
+    if (isFlipping) return;
+    setIsFlipping(true);
+    const newFacing = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(newFacing);
+    // Stop existing stream before starting new one
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    await startCamera(newFacing);
+    setIsFlipping(false);
   };
 
   useEffect(() => {
@@ -517,6 +533,42 @@ export default function Scan() {
               <div className="corner bottom-right"></div>
               <div className="scan-hint"><Info size={14} /> Center a leaf for best results</div>
             </div>
+
+            {/* Camera Flip Button */}
+            {stream && (
+              <button
+                type="button"
+                onClick={flipCamera}
+                disabled={isFlipping}
+                title={facingMode === 'environment' ? 'Switch to front camera' : 'Switch to back camera'}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  background: 'rgba(0,0,0,0.45)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '44px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: isFlipping ? 'not-allowed' : 'pointer',
+                  color: 'white',
+                  backdropFilter: 'blur(4px)',
+                  transition: 'background 0.2s',
+                  zIndex: 10,
+                }}
+              >
+                <FlipHorizontal2
+                  size={22}
+                  style={{
+                    transition: 'transform 0.4s ease',
+                    transform: isFlipping ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                  }}
+                />
+              </button>
+            )}
             
             {isScanning && (
               <div className="scanning-overlay">
