@@ -125,6 +125,7 @@ const plantDetailsMap = require('./plantDetails');
             price VARCHAR(255) NOT NULL,
             location VARCHAR(255) NOT NULL,
             image VARCHAR(255) NOT NULL,
+            quantity INT DEFAULT 1,
             space_tag VARCHAR(255) NOT NULL,
             sunlight_need VARCHAR(50) NOT NULL,
             min_temp INT DEFAULT 10,
@@ -137,7 +138,8 @@ const plantDetailsMap = require('./plantDetails');
             description TEXT,
             is_sold TINYINT(1) DEFAULT 0,
             buyer_id INT,
-            tips_unlocked TINYINT(1) DEFAULT 0
+            tips_unlocked TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
 
           try {
@@ -146,6 +148,7 @@ const plantDetailsMap = require('./plantDetails');
 
           // Alter table dynamically to add new columns if they do not exist
           const columnsToFix = [
+            { name: 'quantity', type: 'INT DEFAULT 1' },
             { name: 'scientific_name', type: 'VARCHAR(255)' },
             { name: 'nepali_name', type: 'VARCHAR(255)' },
             { name: 'english_name', type: 'VARCHAR(255)' },
@@ -156,7 +159,8 @@ const plantDetailsMap = require('./plantDetails');
             { name: 'min_temp', type: 'INT DEFAULT 10' },
             { name: 'max_temp', type: 'INT DEFAULT 35' },
             { name: 'sunlight_need', type: 'VARCHAR(50)' },
-            { name: 'space_tag', type: 'VARCHAR(255)' }
+            { name: 'space_tag', type: 'VARCHAR(255)' },
+            { name: 'created_at', type: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' }
           ];
 
           for (const col of columnsToFix) {
@@ -593,28 +597,27 @@ const plantDetailsMap = require('./plantDetails');
          
          // Logic Change: Never mark the original marketplace listing as sold.
          // Instead, always create new record(s) for the buyer.
-         const insertQuery = 'INSERT INTO plants (name, type, price, location, image, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)';
-         
-         for (let i = 0; i < quantity; i++) {
-           await db.execute(insertQuery, [
-             plant.name, 
-             plant.type, 
-             plant.price, 
-             plant.location, 
-             plant.image, 
-             plant.space_tag, 
-             plant.sunlight_need, 
-             plant.min_temp, 
-             plant.max_temp, 
-             plant.purification_score,
-             plant.rule || '',
-             plant.scientific_name || '',
-             plant.nepali_name || '',
-             plant.english_name || plant.name,
-             plant.description || '',
-             userId
-           ]);
-         }
+         const insertQuery = 'INSERT INTO plants (name, type, price, location, image, quantity, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)';
+
+         await db.execute(insertQuery, [
+           plant.name,
+           plant.type,
+           plant.price,
+           plant.location,
+           plant.image,
+           quantity,
+           plant.space_tag,
+           plant.sunlight_need,
+           plant.min_temp,
+           plant.max_temp,
+           plant.purification_score,
+           plant.rule || '',
+           plant.scientific_name || '',
+           plant.nepali_name || '',
+           plant.english_name || plant.name,
+           plant.description || '',
+           userId
+         ]);
 
          res.json({ message: `Success` });
        } catch (error) {
@@ -660,21 +663,28 @@ const plantDetailsMap = require('./plantDetails');
           // Look up plant details from local map for proper Nepali/scientific names
           const lookupKey = Object.keys(plantDetailsMap).find(k => k.toLowerCase() === name.toLowerCase()) || null;
           const detailLookup = lookupKey ? plantDetailsMap[lookupKey] : {};
+          const quantity = Number(req.body.quantity) > 0 ? Number(req.body.quantity) : 1;
+          const listingEnabled = typeof available === 'undefined' ? 1 : (available ? 1 : 0);
 
           const insertPlant = `INSERT INTO plants
-            (name, type, price, location, image, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, available, nursery_id, nursery_name, nursery_external_id, nursery_location, nursery_phone, is_sold)
-            VALUES (?, ?, ?, ?, ?, 'Any', '2', 10, 35, 5, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
+            (name, type, price, location, image, quantity, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, available, is_listed, listing_type, seller_id, original_price, nursery_id, nursery_name, nursery_external_id, nursery_location, nursery_phone, is_sold)
+            VALUES (?, ?, ?, ?, ?, ?, 'Any', '2', 10, 35, 5, '', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`;
           const [result] = await db.execute(insertPlant, [
             name,
             'plant',
             price,
             location || 'Partner Nursery',
             imagePath,
+            quantity,
             detailLookup.scientificName || '',
             detailLookup.nepaliName || '',
             detailLookup.englishName || name,
             description || '',
-            available ? 1 : 0,
+            listingEnabled,
+            listingEnabled,
+            'sale',
+            nursery.id,
+            price,
             nursery.id,
             nursery.nursery_name || 'Partner Nursery',
             nurseryExternalId,
@@ -719,6 +729,7 @@ const plantDetailsMap = require('./plantDetails');
               location = ?,
               image = ?,
               description = ?,
+              quantity = ?,
               available = ?
              WHERE id = ?`,
             [
@@ -727,6 +738,7 @@ const plantDetailsMap = require('./plantDetails');
               location || plant.location,
               imagePath,
               description || plant.description,
+              typeof req.body.quantity !== 'undefined' ? (Number(req.body.quantity) > 0 ? Number(req.body.quantity) : 1) : (plant.quantity || 1),
               typeof available !== 'undefined' ? (available ? 1 : 0) : plant.available,
               id,
             ]
@@ -810,18 +822,19 @@ const plantDetailsMap = require('./plantDetails');
           const { externalId } = req.params;
           const [nurseryRows] = await db.execute('SELECT id FROM nurseries WHERE external_id = ?', [externalId]);
           const nurseryDbId = nurseryRows[0]?.id || null;
-          
-          const [productRows] = await db.execute('SELECT COUNT(*) as count FROM plants WHERE nursery_external_id = ?', [externalId]);
-          const [orderRows] = nurseryDbId 
+
+          const [productRows] = await db.execute('SELECT COUNT(*) as count FROM plants WHERE nursery_external_id = ? AND is_sold = 0', [externalId]);
+          const [orderRows] = nurseryDbId
             ? await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE receiver_id = ? AND request_type = 'buy'", [nurseryDbId])
             : [[{ count: 0 }]];
+          const [stockRows] = await db.execute('SELECT SUM(CASE WHEN quantity IS NULL OR quantity < 1 THEN 1 ELSE quantity END) as stockCount FROM plants WHERE nursery_external_id = ? AND is_sold = 0', [externalId]);
 
           res.json({
             totalProducts: productRows[0]?.count || 0,
             totalOrders: orderRows[0]?.count || 0,
-            totalPlantsSold: 0, 
+            totalPlantsSold: 0,
             totalRevenue: 0,
-            lowStock: 0,
+            lowStock: stockRows[0]?.stockCount && Number(stockRows[0].stockCount) <= 5 ? 1 : 0,
             recentOrders: [],
             trending: []
           });
@@ -931,18 +944,16 @@ const plantDetailsMap = require('./plantDetails');
                 console.log(`[PAYMENT] Using existing plant ID ${rawId} as template for User ${userId}`);
                 
                 const insertQuery = `INSERT INTO plants 
-                  (name, type, price, location, image, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`;
-                
-                for (let i = 0; i < quantity; i++) {
-                  await db.execute(insertQuery, [
-                    plantTemplate.name, plantTemplate.type, plantTemplate.price, plantTemplate.location, plantTemplate.image, 
-                    plantTemplate.space_tag, plantTemplate.sunlight_need, plantTemplate.min_temp, plantTemplate.max_temp, 
-                    plantTemplate.purification_score, plantTemplate.rule || '', plantTemplate.scientific_name || '', 
-                    plantTemplate.nepali_name || '', plantTemplate.english_name || plantTemplate.name, plantTemplate.description || '', userId
-                  ]);
-                }
-                console.log(`[PAYMENT] Created ${quantity} record(s) for User ${userId} based on template ID ${rawId}`);
+                  (name, type, price, location, image, quantity, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`;
+
+                await db.execute(insertQuery, [
+                  plantTemplate.name, plantTemplate.type, plantTemplate.price, plantTemplate.location, plantTemplate.image,
+                  quantity, plantTemplate.space_tag, plantTemplate.sunlight_need, plantTemplate.min_temp, plantTemplate.max_temp,
+                  plantTemplate.purification_score, plantTemplate.rule || '', plantTemplate.scientific_name || '',
+                  plantTemplate.nepali_name || '', plantTemplate.english_name || plantTemplate.name, plantTemplate.description || '', userId
+                ]);
+                console.log(`[PAYMENT] Created 1 record with quantity ${quantity} for User ${userId} based on template ID ${rawId}`);
              } else {
                 // Exact plant not available or ID is a scan identifier
                 console.log(`[PAYMENT] No unsold plant with ID ${rawId}. Finding template by name: "${item.name}"`);
@@ -951,30 +962,29 @@ const plantDetailsMap = require('./plantDetails');
                 const fallbackTemplate = templateRows[0];
 
                 const insertQuery = `INSERT INTO plants 
-                  (name, type, price, location, image, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) 
-                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`;
+                  (name, type, price, location, image, quantity, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) 
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`;
 
-                for (let i = 0; i < quantity; i++) {
-                  await db.execute(insertQuery, [
-                    item.name || fallbackTemplate?.name || 'Unknown Plant',
-                    item.type || fallbackTemplate?.type || 'buy',
-                    item.price || fallbackTemplate?.price || 'Rs. 450',
-                    item.location || fallbackTemplate?.location || 'Partner Nursery',
-                    item.image || fallbackTemplate?.image || '/plants/default.jpg',
-                    item.space_tag || fallbackTemplate?.space_tag || 'indoor',
-                    item.sunlight_need || fallbackTemplate?.sunlight_need || '2',
-                    item.min_temp || fallbackTemplate?.min_temp || 15,
-                    item.max_temp || fallbackTemplate?.max_temp || 30,
-                    item.purification_score || fallbackTemplate?.purification_score || 5,
-                    item.rule || fallbackTemplate?.rule || '',
-                    item.scientific_name || fallbackTemplate?.scientific_name || '',
-                    item.nepali_name || fallbackTemplate?.nepali_name || '',
-                    item.english_name || fallbackTemplate?.english_name || item.name || 'Unknown Plant',
-                    item.description || fallbackTemplate?.description || '',
-                    userId
-                  ]);
-                }
-                console.log(`[PAYMENT] Created ${quantity} new plant record(s) for User ${userId} (Name: ${item.name})`);
+                await db.execute(insertQuery, [
+                  item.name || fallbackTemplate?.name || 'Unknown Plant',
+                  item.type || fallbackTemplate?.type || 'buy',
+                  item.price || fallbackTemplate?.price || 'Rs. 450',
+                  item.location || fallbackTemplate?.location || 'Partner Nursery',
+                  item.image || fallbackTemplate?.image || '/plants/default.jpg',
+                  quantity,
+                  item.space_tag || fallbackTemplate?.space_tag || 'indoor',
+                  item.sunlight_need || fallbackTemplate?.sunlight_need || '2',
+                  item.min_temp || fallbackTemplate?.min_temp || 15,
+                  item.max_temp || fallbackTemplate?.max_temp || 30,
+                  item.purification_score || fallbackTemplate?.purification_score || 5,
+                  item.rule || fallbackTemplate?.rule || '',
+                  item.scientific_name || fallbackTemplate?.scientific_name || '',
+                  item.nepali_name || fallbackTemplate?.nepali_name || '',
+                  item.english_name || fallbackTemplate?.english_name || item.name || 'Unknown Plant',
+                  item.description || fallbackTemplate?.description || '',
+                  userId
+                ]);
+                console.log(`[PAYMENT] Created 1 new plant record with quantity ${quantity} for User ${userId} (Name: ${item.name})`);
              }
            } catch (itemError) {
              console.error(`[PAYMENT] Item processing error for ${item.name}:`, itemError.message);
@@ -1021,7 +1031,7 @@ const plantDetailsMap = require('./plantDetails');
        try {
          const { userId } = req.params;
          console.log(`[DASHBOARD] Fetching stats for User ID: ${userId}`);
-         const [rows] = await db.execute('SELECT COUNT(*) as ownedCount FROM plants WHERE buyer_id = ?', [userId]);
+         const [rows] = await db.execute('SELECT COALESCE(SUM(quantity), COUNT(*)) as ownedCount FROM plants WHERE buyer_id = ?', [userId]);
          const [co2Rows] = await db.execute('SELECT SUM(purification_score) as totalCO2 FROM plants WHERE buyer_id = ?', [userId]);
          
          const stats = {
@@ -1143,9 +1153,13 @@ const plantDetailsMap = require('./plantDetails');
         try {
           const { userId } = req.query;
           const [listings] = await db.execute(`
-            SELECT p.*, u.full_name as seller_name, u.preferred_location as seller_location, u.profile_image as seller_avatar
+            SELECT p.*, 
+                   COALESCE(u.full_name, n.nursery_name, 'Nursery') as seller_name,
+                   COALESCE(u.preferred_location, n.address, '') as seller_location,
+                   u.profile_image as seller_avatar
             FROM plants p
-            JOIN users u ON p.seller_id = u.id
+            LEFT JOIN users u ON p.seller_id = u.id
+            LEFT JOIN nurseries n ON p.nursery_external_id = n.external_id
             WHERE p.is_listed = 1
           `, []);
           res.json(listings);
@@ -1452,7 +1466,7 @@ const plantDetailsMap = require('./plantDetails');
           const [nCount] = await db.execute('SELECT COUNT(*) as count FROM nurseries');
           let totalNurseries = Number(nCount[0]?.count) || 0;
 
-          const [pCount] = await db.execute('SELECT COUNT(*) as count FROM plants');
+          const [pCount] = await db.execute('SELECT COUNT(*) as count FROM plants WHERE is_sold = 0');
           let totalPlants = Number(pCount[0]?.count) || 0;
 
           const [oCount] = await db.execute("SELECT COUNT(*) as count FROM trade_requests WHERE request_type = 'buy'");
@@ -1623,7 +1637,7 @@ const plantDetailsMap = require('./plantDetails');
 
       app.get('/api/admin/plants', async (req, res) => {
         try {
-          const [rows] = await db.execute('SELECT * FROM plants ORDER BY created_at DESC');
+          const [rows] = await db.execute('SELECT * FROM plants WHERE is_sold = 0 ORDER BY created_at DESC');
           if (rows && rows.length > 0) return res.json(rows);
         } catch (error) {}
 

@@ -238,9 +238,9 @@ export default function Dashboard() {
   const groupedCollection = collection.reduce((acc, plant) => {
     const existing = acc.find(item => item.name === plant.name);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += Number(plant.quantity || 1);
     } else {
-      acc.push({ ...plant, quantity: 1 });
+      acc.push({ ...plant, quantity: Number(plant.quantity || 1) });
     }
     return acc;
   }, []);
