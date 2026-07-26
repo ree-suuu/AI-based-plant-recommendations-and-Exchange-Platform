@@ -93,6 +93,13 @@ const plantDetailsMap = require('./plantDetails');
            await db.execute('ALTER TABLE users MODIFY password VARCHAR(255) NULL');
          } catch (err) {}
 
+         try {
+           await db.execute('ALTER TABLE users CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+           console.log('✅ Converted users table to utf8mb4_unicode_ci');
+         } catch (err) {
+           console.warn('⚠️ Could not convert users table collation:', err.message || err);
+         }
+
          // Create payment_sessions table
          await db.execute(`
            CREATE TABLE IF NOT EXISTS payment_sessions (
@@ -1193,8 +1200,16 @@ const plantDetailsMap = require('./plantDetails');
           const { userId } = req.query;
           const [listings] = await db.execute(`
             SELECT p.*, 
-                   COALESCE(u.full_name, n.nursery_name, 'Nursery') as seller_name,
-                   COALESCE(u.preferred_location, n.address, '') as seller_location,
+                   COALESCE(
+                     u.full_name COLLATE utf8mb4_unicode_ci,
+                     n.nursery_name COLLATE utf8mb4_unicode_ci,
+                     'Nursery'
+                   ) as seller_name,
+                   COALESCE(
+                     u.preferred_location COLLATE utf8mb4_unicode_ci,
+                     n.address COLLATE utf8mb4_unicode_ci,
+                     ''
+                   ) as seller_location,
                    u.profile_image as seller_avatar
             FROM plants p
             LEFT JOIN users u ON p.seller_id = u.id
