@@ -18,19 +18,21 @@ function PlantCard({ plant, onBuyClick, onClick, isCommunity, isOwner, onDelete 
   };
   const getBadgeText = () => {
     if (!isCommunity) return 'BUY';
-    if (plant.listing_type === 'exchange') return 'SWAP';
-    if (plant.listing_type === 'sale') return 'BUY';
-    if (plant.listing_type === 'thrift') return 'THRIFT';
-    if (plant.listing_type === 'both') return 'BUY/SWAP';
+    const type = plant.listing_type?.toLowerCase();
+    if (type === 'exchange' || type === 'swap') return 'SWAP';
+    if (type === 'sale') return 'BUY';
+    if (type === 'thrift') return 'THRIFT';
+    if (type === 'both') return 'BUY/SWAP';
     return plant.listing_type?.toUpperCase() || 'LISTED';
   };
 
   const getBadgeColor = () => {
     if (!isCommunity) return '#10B981'; // Green for Nursery Buy
-    if (plant.listing_type === 'thrift') return '#FF4B4B'; // Red for Thrift
-    if (plant.listing_type === 'exchange') return '#3B82F6'; // Blue for Swap
-    if (plant.listing_type === 'sale') return '#10B981'; // Green for P2P Buy
-    if (plant.listing_type === 'both') return 'var(--primary)'; // Dark Green for mixed
+    const type = plant.listing_type?.toLowerCase();
+    if (type === 'thrift') return '#FF4B4B'; // Red for Thrift
+    if (type === 'exchange' || type === 'swap') return '#3B82F6'; // Blue for Swap
+    if (type === 'sale') return '#10B981'; // Green for P2P Buy
+    if (type === 'both') return 'var(--primary)'; // Dark Green for mixed
     return 'var(--primary)';
   };
 
@@ -81,7 +83,7 @@ function PlantCard({ plant, onBuyClick, onClick, isCommunity, isOwner, onDelete 
             </p>
           </div>
           <div className="price-tag">
-            <p className="price">{plant.listing_type === 'exchange' ? 'SWAP' : (plant.original_price || plant.price)}</p>
+            <p className="price">{['exchange', 'swap'].includes(plant.listing_type?.trim().toLowerCase()) ? 'SWAP' : (plant.original_price || plant.price)}</p>
           </div>
         </div>
 
@@ -99,7 +101,7 @@ function PlantCard({ plant, onBuyClick, onClick, isCommunity, isOwner, onDelete 
           ) : isCommunity ? (
             <>
               <ArrowLeftRight size={16} />
-              <span>{plant.listing_type === 'exchange' ? 'Request Swap' : 'Send Offer'}</span>
+              <span>{['exchange', 'swap'].includes(plant.listing_type?.trim().toLowerCase()) ? 'Request Swap' : 'Send Offer'}</span>
             </>
           ) : (
             <>
@@ -203,10 +205,14 @@ export default function Marketplace() {
       const response = await fetch(`${API_BASE_URL}/api/marketplace/community?userId=${uId}`);
       const data = await response.json();
       if (Array.isArray(data)) {
-        const transformedData = data.map(p => ({
-          ...p,
-          image: p.image && !p.image.startsWith('http') ? `${API_BASE_URL}${encodeURI(p.image)}` : p.image
-        }));
+        const transformedData = data.map(p => {
+          const normalizedType = `${p.listing_type || ''}`.trim().toLowerCase();
+          return {
+            ...p,
+            listing_type: normalizedType,
+            image: p.image && !p.image.startsWith('http') ? `${API_BASE_URL}${encodeURI(p.image)}` : p.image
+          };
+        });
         setCommunityPlants(transformedData);
       }
     } catch (err) {
@@ -303,11 +309,13 @@ export default function Marketplace() {
     }
 
     if (activeTab === 'thrift') {
-      return plant.isCommunity && (plant.listing_type === 'thrift' || plant.listing_type === 'both');
+      const type = plant.listing_type?.trim().toLowerCase();
+      return plant.isCommunity && (type === 'thrift' || type === 'both');
     }
 
     if (activeTab === 'swap') {
-      return plant.isCommunity && (plant.listing_type === 'exchange' || plant.listing_type === 'swap' || plant.listing_type === 'both');
+      const type = plant.listing_type?.trim().toLowerCase();
+      return plant.isCommunity && (type === 'exchange' || type === 'swap' || type === 'both');
     }
 
     return true;
