@@ -197,6 +197,23 @@ export default function Marketplace() {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
+  const fetchCommunityPlants = async () => {
+    const uId = localStorage.getItem('leafLifeUserId') || 1;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/community?userId=${uId}`);
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const transformedData = data.map(p => ({
+          ...p,
+          image: p.image && !p.image.startsWith('http') ? `${API_BASE_URL}${encodeURI(p.image)}` : p.image
+        }));
+        setCommunityPlants(transformedData);
+      }
+    } catch (err) {
+      console.error("Error fetching community plants:", err);
+    }
+  };
+
   useEffect(() => {
     const fetchPlants = async () => {
       try {
@@ -221,23 +238,6 @@ export default function Marketplace() {
       }
     };
     fetchPlants();
-
-    const fetchCommunityPlants = async () => {
-      const uId = localStorage.getItem('leafLifeUserId') || 1;
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/marketplace/community?userId=${uId}`);
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          const transformedData = data.map(p => ({
-            ...p,
-            image: p.image && !p.image.startsWith('http') ? `${API_BASE_URL}${encodeURI(p.image)}` : p.image
-          }));
-          setCommunityPlants(transformedData);
-        }
-      } catch (err) {
-        console.error("Error fetching community plants:", err);
-      }
-    };
     fetchCommunityPlants();
   }, []);
 
@@ -307,7 +307,7 @@ export default function Marketplace() {
     }
 
     if (activeTab === 'swap') {
-      return plant.isCommunity && (plant.listing_type === 'exchange' || plant.listing_type === 'both');
+      return plant.isCommunity && (plant.listing_type === 'exchange' || plant.listing_type === 'swap' || plant.listing_type === 'both');
     }
 
     return true;
@@ -535,11 +535,7 @@ export default function Marketplace() {
         showToast('Listing created successfully! 🌱', 'info');
         setShowAddModal(false);
         setNewPlant({ name: '', price: 'Rs. 450', listingType: 'exchange', type: 'plant', location: '', description: '', image: null });
-        // Refresh community plants
-        const uId = localStorage.getItem('leafLifeUserId') || 1;
-        const commRes = await fetch(`${API_BASE_URL}/api/marketplace/community?userId=${uId}`);
-        const commData = await commRes.json();
-        setCommunityPlants(commData);
+        await fetchCommunityPlants();
       }
     } catch (err) {
       console.error("Error adding product:", err);

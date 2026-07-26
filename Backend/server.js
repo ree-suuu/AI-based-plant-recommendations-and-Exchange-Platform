@@ -590,14 +590,23 @@ const plantDetailsMap = require('./plantDetails');
        try {
          const { id } = req.params;
          const { userId, quantity = 1 } = req.body;
+         const requestedQuantity = Number(quantity) > 0 ? Number(quantity) : 1;
 
-         const [rows] = await db.execute('SELECT * FROM plants WHERE id = ?', [id]);
+         const [rows] = await db.execute(
+           'SELECT * FROM plants WHERE id = ? AND is_sold = 0 AND (available IS NULL OR available = 1)',
+           [id]
+         );
          const plant = rows[0];
-         if (!plant) return res.status(404).json({ error: 'Plant not found' });
-         
-         // Logic Change: Never mark the original marketplace listing as sold.
-         // Instead, always create new record(s) for the buyer.
-         const insertQuery = 'INSERT INTO plants (name, type, price, location, image, quantity, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)';
+         if (!plant) return res.status(404).json({ error: 'Plant not found or not available' });
+
+         const availableQuantity = Number(plant.quantity) > 0 ? Number(plant.quantity) : 1;
+         if (requestedQuantity > availableQuantity) {
+           return res.status(400).json({ error: 'Requested quantity exceeds available stock' });
+         }
+
+         const insertQuery = `INSERT INTO plants
+           (name, type, price, location, image, quantity, space_tag, sunlight_need, min_temp, max_temp, purification_score, rule, scientific_name, nepali_name, english_name, description, is_sold, buyer_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`;
 
          await db.execute(insertQuery, [
            plant.name,
@@ -605,7 +614,7 @@ const plantDetailsMap = require('./plantDetails');
            plant.price,
            plant.location,
            plant.image,
-           quantity,
+           requestedQuantity,
            plant.space_tag,
            plant.sunlight_need,
            plant.min_temp,
@@ -619,7 +628,14 @@ const plantDetailsMap = require('./plantDetails');
            userId
          ]);
 
-         res.json({ message: `Success` });
+         const remainingQuantity = availableQuantity - requestedQuantity;
+         if (remainingQuantity > 0) {
+           await db.execute('UPDATE plants SET quantity = ? WHERE id = ?', [remainingQuantity, id]);
+         } else {
+           await db.execute('UPDATE plants SET quantity = 0, is_sold = 1, available = 0 WHERE id = ?', [id]);
+         }
+
+         res.json({ message: 'Success', purchasedQuantity: requestedQuantity, remainingQuantity });
        } catch (error) {
          console.error('Purchase error:', error);
          res.status(500).json({ error: 'Purchase failed' });
@@ -953,6 +969,15 @@ const plantDetailsMap = require('./plantDetails');
                   plantTemplate.purification_score, plantTemplate.rule || '', plantTemplate.scientific_name || '',
                   plantTemplate.nepali_name || '', plantTemplate.english_name || plantTemplate.name, plantTemplate.description || '', userId
                 ]);
+
+                const availableQuantity = Number(plantTemplate.quantity) > 0 ? Number(plantTemplate.quantity) : 1;
+                const remainingQuantity = Math.max(0, availableQuantity - quantity);
+                if (remainingQuantity > 0) {
+                  await db.execute('UPDATE plants SET quantity = ? WHERE id = ?', [remainingQuantity, rawId]);
+                } else {
+                  await db.execute('UPDATE plants SET quantity = 0, is_sold = 1, available = 0 WHERE id = ?', [rawId]);
+                }
+
                 console.log(`[PAYMENT] Created 1 record with quantity ${quantity} for User ${userId} based on template ID ${rawId}`);
              } else {
                 // Exact plant not available or ID is a scan identifier
