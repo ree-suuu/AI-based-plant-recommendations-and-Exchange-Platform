@@ -144,6 +144,13 @@ const plantDetailsMap = require('./plantDetails');
 
           try {
             await db.execute('ALTER TABLE plants CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            console.log('✅ Converted plants table to utf8mb4_unicode_ci');
+          } catch (err) {
+            console.warn('⚠️ Could not convert plants table collation:', err.message || err);
+          }
+
+          try {
+            await db.execute('ALTER TABLE plants CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
           } catch (e) {}
 
           // Alter table dynamically to add new columns if they do not exist
@@ -206,8 +213,15 @@ const plantDetailsMap = require('./plantDetails');
               role VARCHAR(50) DEFAULT 'User',
               profile_image VARCHAR(255),
               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+            ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
           `);
+
+          try {
+            await db.execute('ALTER TABLE nurseries CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+            console.log('✅ Converted nurseries table to utf8mb4_unicode_ci');
+          } catch (err) {
+            console.warn('⚠️ Could not convert nurseries table collation:', err.message || err);
+          }
           
           // Migration: Add password column if it doesn't exist
           try {
@@ -1184,7 +1198,7 @@ const plantDetailsMap = require('./plantDetails');
                    u.profile_image as seller_avatar
             FROM plants p
             LEFT JOIN users u ON p.seller_id = u.id
-            LEFT JOIN nurseries n ON p.nursery_external_id = n.external_id
+            LEFT JOIN nurseries n ON p.nursery_external_id COLLATE utf8mb4_unicode_ci = n.external_id COLLATE utf8mb4_unicode_ci
             WHERE p.is_listed = 1
           `, []);
           res.json(listings);
