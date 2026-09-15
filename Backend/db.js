@@ -1,21 +1,37 @@
-const mysql = require('mysql2');
+const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    charset: 'utf8mb4',
-
-    waitForConnections: true,
-    connectionLimit: 10,
-
-    ssl: {
-        rejectUnauthorized: false
-    }
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+    max: 10
 });
 
-module.exports = pool.promise();
+function replacePlaceholders(sql) {
+    let index = 0;
+    return sql.replace(/\?/g, () => `$${++index}`);
+}
+
+function addReturningId(sql) {
+    if (/^\s*INSERT\s/i.test(sql) && !/\bRETURNING\b/i.test(sql)) {
+        return `${sql.trimEnd()} RETURNING id`;
+    }
+    return sql;
+}
+
+async function execute(sql, params = []) {
+    const query = addReturningId(replacePlaceholders(sql));
+    const result = await pool.query(query, params);
+    const isRead = /^\s*(SELECT|WITH)\b/i.test(sql);
+
+    if (isRead) return [result.rows, result.fields];
+
+    return [{
+        affectedRows: result.rowCount,
+        insertId: result.rows[0]?.id,
+        rows: result.rows
+    }, result.fields];
+}
+
+module.exports = { execute, query: (text, values) => pool.query(text, values), pool };

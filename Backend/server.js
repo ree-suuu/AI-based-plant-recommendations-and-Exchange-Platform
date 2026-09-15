@@ -45,6 +45,7 @@ const plantDetailsMap = require('./plantDetails');
 
      // Test Database Connection and Initialize Tables
      const db = require('./db');
+    const usePostgres = Boolean(process.env.DATABASE_URL);
      
      const initDB = async () => {
        try {
@@ -346,10 +347,14 @@ const plantDetailsMap = require('./plantDetails');
        }
      };
 
-     initDB();
+     if (usePostgres) {
+       console.log('✅ Using migrated PostgreSQL schema');
+     } else {
+       initDB();
+     }
 
      function isTableMissingError(error) {
-       return error && (error.code === 'ER_NO_SUCH_TABLE' || error.errno === 1146);
+      return error && (error.code === 'ER_NO_SUCH_TABLE' || error.errno === 1146 || error.code === '42P01');
      }
 
      function isPermissionError(error) {
@@ -503,7 +508,7 @@ const plantDetailsMap = require('./plantDetails');
          }
 
          if (sunlight && sunlight !== 'Any') {
-           query += ' AND CAST(sunlight_need AS UNSIGNED) <= ?';
+           query += ' AND CAST(sunlight_need AS INTEGER) <= ?';
            params.push(lightVal);
          }
 
@@ -1201,19 +1206,19 @@ const plantDetailsMap = require('./plantDetails');
           const [listings] = await db.execute(`
             SELECT p.*, 
                    COALESCE(
-                     u.full_name COLLATE utf8mb4_unicode_ci,
-                     n.nursery_name COLLATE utf8mb4_unicode_ci,
+                     u.full_name,
+                     n.nursery_name,
                      'Nursery'
                    ) as seller_name,
                    COALESCE(
-                     u.preferred_location COLLATE utf8mb4_unicode_ci,
-                     n.address COLLATE utf8mb4_unicode_ci,
+                     u.preferred_location,
+                     n.address,
                      ''
                    ) as seller_location,
                    u.profile_image as seller_avatar
             FROM plants p
             LEFT JOIN users u ON p.seller_id = u.id
-            LEFT JOIN nurseries n ON p.nursery_external_id COLLATE utf8mb4_unicode_ci = n.external_id COLLATE utf8mb4_unicode_ci
+            LEFT JOIN nurseries n ON p.nursery_external_id = n.external_id
             WHERE p.is_listed = 1
           `, []);
           res.json(listings);
