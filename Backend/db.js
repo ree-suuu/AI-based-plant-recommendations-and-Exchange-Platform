@@ -2,11 +2,18 @@ const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
-    max: 10
-});
+const poolConfig = process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+    }
+    : {
+        host: '/var/run/postgresql',
+        user: process.env.USER || 'postgres',
+        database: 'leaflife'
+    };
+
+const pool = new Pool({ ...poolConfig, max: 10 });
 
 function replacePlaceholders(sql) {
     let index = 0;

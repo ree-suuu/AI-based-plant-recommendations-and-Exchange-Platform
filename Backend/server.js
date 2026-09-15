@@ -45,7 +45,7 @@ const plantDetailsMap = require('./plantDetails');
 
      // Test Database Connection and Initialize Tables
      const db = require('./db');
-    const usePostgres = Boolean(process.env.DATABASE_URL);
+    const usePostgres = true;
      
      const initDB = async () => {
        try {
