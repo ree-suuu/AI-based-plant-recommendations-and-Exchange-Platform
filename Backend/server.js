@@ -1291,7 +1291,7 @@ const plantDetailsMap = require('./plantDetails');
           const [incoming] = await db.execute(`
             SELECT r.*, p.name as plant_name, p.image as plant_image, u.full_name as sender_name
             FROM trade_requests r
-            JOIN plants p ON r.plant_id = p.id
+            JOIN plants p ON r.plant_id::integer = p.id
             LEFT JOIN users u ON r.sender_id = u.id
             WHERE r.receiver_id = ?
             ORDER BY r.created_at DESC
@@ -1300,7 +1300,7 @@ const plantDetailsMap = require('./plantDetails');
           const [outgoing] = await db.execute(`
             SELECT r.*, p.name as plant_name, p.image as plant_image, u.full_name as receiver_name
             FROM trade_requests r
-            JOIN plants p ON r.plant_id = p.id
+            JOIN plants p ON r.plant_id::integer = p.id
             LEFT JOIN users u ON r.receiver_id = u.id
             WHERE r.sender_id = ?
             ORDER BY r.created_at DESC
