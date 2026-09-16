@@ -170,13 +170,15 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         const statsRes = await fetch(`${API_BASE_URL}/api/user/${userId}/stats`);
-        const statsData = await statsRes.json();
-        setOwnedCount(statsData.ownedCount || 0);
-        setTotalCO2(statsData.totalCO2 || "0.0");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setOwnedCount(Number(statsData.ownedCount || 0));
+          setTotalCO2(statsData.totalCO2 || "0.0");
+        }
 
         const collectionRes = await fetch(`${API_BASE_URL}/api/user/${userId}/collection`);
         const collectionData = await collectionRes.json();
-        setCollection(collectionData || []);
+        setCollection(collectionRes.ok && Array.isArray(collectionData) ? collectionData : []);
       } catch (err) {
         console.error("Dashboard fetch error:", err);
       } finally {

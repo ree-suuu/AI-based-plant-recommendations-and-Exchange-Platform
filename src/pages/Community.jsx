@@ -18,13 +18,18 @@ export default function Community() {
     try {
       // Fetch users
       const usersRes = await fetch(`${API_BASE_URL}/api/community/users?currentUserId=${userId}`);
+      if (!usersRes.ok) throw new Error(`Community users request failed (${usersRes.status})`);
       const usersData = await usersRes.json();
-      setUsers(usersData);
+      setUsers(Array.isArray(usersData) ? usersData : []);
 
       // Fetch requests
       const requestsRes = await fetch(`${API_BASE_URL}/api/trade/requests/${userId}`);
+      if (!requestsRes.ok) throw new Error(`Trade requests request failed (${requestsRes.status})`);
       const requestsData = await requestsRes.json();
-      setRequests(requestsData);
+      setRequests({
+        incoming: Array.isArray(requestsData.incoming) ? requestsData.incoming : [],
+        outgoing: Array.isArray(requestsData.outgoing) ? requestsData.outgoing : []
+      });
     } catch (err) {
       console.error("Error fetching community data:", err);
     } finally {
