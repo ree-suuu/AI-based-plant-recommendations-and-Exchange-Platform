@@ -444,6 +444,7 @@ export default function Marketplace() {
       if (response.ok) {
         setCart([]);
         localStorage.removeItem('cart');
+        window.dispatchEvent(new Event('leaflife:dashboard-updated'));
         setSuccess(true);
         setShowQRPrompt(false);
       } else {

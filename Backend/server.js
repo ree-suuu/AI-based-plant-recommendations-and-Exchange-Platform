@@ -40,6 +40,13 @@ const plantDetailsMap = require('./plantDetails');
      app.use('/plants', express.static(path.join(__dirname, '../public/plants')));
      app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+     app.use('/api', (req, res, next) => {
+       res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+       res.set('Pragma', 'no-cache');
+       res.set('Expires', '0');
+       next();
+     });
+
      // Routes
      app.use('/api/auth', authRoutes);
 

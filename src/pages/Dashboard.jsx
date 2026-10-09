@@ -133,7 +133,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleFinalizePurchase = async () => {
+  async function handleFinalizePurchase() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/payment/complete/${paymentSessionId}`, {
         method: 'POST'
@@ -141,6 +141,7 @@ export default function Dashboard() {
       if (response.ok) {
         setCart([]);
         localStorage.removeItem('cart');
+        await refreshDashboardData();
         setSuccess(true);
         setShowQRPrompt(false);
       } else {
@@ -158,6 +159,31 @@ export default function Dashboard() {
     setPaymentSessionId(null);
   };
 
+  async function refreshDashboardData() {
+    if (!isAuthenticated) return;
+
+    try {
+      const cacheBuster = `?updatedAt=${Date.now()}`;
+      const [statsRes, collectionRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/user/${userId}/stats${cacheBuster}`, { cache: 'no-store' }),
+        fetch(`${API_BASE_URL}/api/user/${userId}/collection${cacheBuster}`, { cache: 'no-store' })
+      ]);
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setOwnedCount(Number(statsData.ownedCount || 0));
+        setTotalCO2(statsData.totalCO2 || '0.0');
+      }
+
+      if (collectionRes.ok) {
+        const collectionData = await collectionRes.json();
+        setCollection(Array.isArray(collectionData) ? collectionData : []);
+      }
+    } catch (err) {
+      console.error('Dashboard refresh error:', err);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       setOwnedCount(0);
@@ -167,25 +193,18 @@ export default function Dashboard() {
       return;
     }
 
-    const fetchDashboardData = async () => {
-      try {
-        const statsRes = await fetch(`${API_BASE_URL}/api/user/${userId}/stats`);
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setOwnedCount(Number(statsData.ownedCount || 0));
-          setTotalCO2(statsData.totalCO2 || "0.0");
-        }
+    refreshDashboardData().finally(() => setLoading(false));
+  }, [userId, isAuthenticated]);
 
-        const collectionRes = await fetch(`${API_BASE_URL}/api/user/${userId}/collection`);
-        const collectionData = await collectionRes.json();
-        setCollection(collectionRes.ok && Array.isArray(collectionData) ? collectionData : []);
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    const refreshOnFocus = () => refreshDashboardData();
+    const refreshAfterPurchase = () => refreshDashboardData();
+    window.addEventListener('focus', refreshOnFocus);
+    window.addEventListener('leaflife:dashboard-updated', refreshAfterPurchase);
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus);
+      window.removeEventListener('leaflife:dashboard-updated', refreshAfterPurchase);
     };
-    fetchDashboardData();
   }, [userId, isAuthenticated]);
 
   const handleListPlant = (plant) => {
@@ -216,10 +235,7 @@ export default function Dashboard() {
         showToast('Plant listed in Community Marketplace! ✅', 'info');
         setShowListingModal(false);
         setPlantToList(null);
-        // Refresh collection
-        const collectionRes = await fetch(`${API_BASE_URL}/api/user/${userId}/collection`);
-        const collectionData = await collectionRes.json();
-        setCollection(collectionData || []);
+        await refreshDashboardData();
       } else {
         showToast('Failed to list plant. Please try again.', 'error');
       }
