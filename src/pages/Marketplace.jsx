@@ -441,14 +441,15 @@ export default function Marketplace() {
       });
 
       const data = await response.json().catch(() => ({}));
-      if (response.ok) {
+      if (response.ok && data.success !== false) {
         setCart([]);
         localStorage.removeItem('cart');
         window.dispatchEvent(new Event('leaflife:dashboard-updated'));
         setSuccess(true);
         setShowQRPrompt(false);
       } else {
-        showToast(data.error || 'Failed to finalize checkout. Please try again.', 'error');
+        const details = Array.isArray(data.errors) ? ` ${data.errors.join(' ')}` : '';
+        showToast((data.error || 'Failed to finalize checkout. Please try again.') + details, 'error');
       }
     } catch (err) {
       console.error("Checkout finalization error:", err);

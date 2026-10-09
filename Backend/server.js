@@ -1047,11 +1047,20 @@ const plantDetailsMap = require('./plantDetails');
            }
          }
 
-         // 3. Update session status
+         if (errors.length > 0) {
+           console.error(`[PAYMENT] Session ${sessionId} completed with errors:`, errors);
+           return res.status(500).json({
+             success: false,
+             error: 'Purchase could not be saved',
+             errors
+           });
+         }
+
+         // Mark the session complete only after every ownership record is saved.
          await db.execute('UPDATE payment_sessions SET status = ? WHERE id = ?', ['completed', sessionId]);
          console.log(`[PAYMENT] Session ${sessionId} marked as completed for User ${userId}`);
 
-         res.json({ success: errors.length === 0, processedItems: cartItems.length, errors: errors.length > 0 ? errors : undefined });
+         res.json({ success: true, processedItems: cartItems.length });
          } catch (error) {
          console.error('[PAYMENT] Critical error completing payment:', error);
          res.status(500).json({ error: 'Failed to complete payment', details: error.message });
@@ -1086,7 +1095,7 @@ const plantDetailsMap = require('./plantDetails');
        try {
          const { userId } = req.params;
          console.log(`[DASHBOARD] Fetching stats for User ID: ${userId}`);
-         const [rows] = await db.execute('SELECT COALESCE(SUM(quantity), COUNT(*), 0) AS "ownedCount" FROM plants WHERE buyer_id = ?', [userId]);
+         const [rows] = await db.execute('SELECT COALESCE(SUM(quantity), 0) AS "ownedCount" FROM plants WHERE buyer_id = ?', [userId]);
          const [co2Rows] = await db.execute('SELECT COALESCE(SUM(purification_score), 0) AS "totalCO2" FROM plants WHERE buyer_id = ?', [userId]);
          
          const stats = {

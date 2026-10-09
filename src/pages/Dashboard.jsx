@@ -138,14 +138,16 @@ export default function Dashboard() {
       const response = await fetch(`${API_BASE_URL}/api/payment/complete/${paymentSessionId}`, {
         method: 'POST'
       });
-      if (response.ok) {
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success !== false) {
         setCart([]);
         localStorage.removeItem('cart');
         await refreshDashboardData();
         setSuccess(true);
         setShowQRPrompt(false);
       } else {
-        showToast("Failed to finalize checkout.", 'error');
+        const details = Array.isArray(data.errors) ? ` ${data.errors.join(' ')}` : '';
+        showToast((data.error || 'Failed to finalize checkout.') + details, 'error');
       }
     } catch (err) {
       console.error("Checkout finalization error:", err);
