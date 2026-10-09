@@ -1635,6 +1635,7 @@ const plantDetailsMap = require('./plantDetails');
           if (targetEmail || effectiveId) {
             try {
               await db.execute('DELETE FROM plants WHERE seller_id = ? OR seller_id = ?', [realId, effectiveId]);
+              await db.execute('DELETE FROM plants WHERE buyer_id = ? OR buyer_id = ?', [realId, effectiveId]);
             } catch (e) {}
           }
 
